@@ -2,6 +2,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import pandas as pd
 
+
+
 from nba_api.stats.endpoints import commonplayerinfo, leaguedashteamstats
 
 
@@ -24,13 +26,19 @@ def get_player_team_id(player_id: int) -> int:
 
 
 def get_team_advanced_df(season: str, season_type: str = "Regular Season") -> pd.DataFrame:
-    df = leaguedashteamstats.LeagueDashTeamStats(
+    
+    # Just try the call with a longer timeout. No monkeypatching.
+    return leaguedashteamstats.LeagueDashTeamStats(
         season=season,
         season_type_all_star=season_type,
         per_mode_detailed="PerGame",
         measure_type_detailed_defense="Advanced",
+        timeout=60,
     ).get_data_frames()[0]
+
+
     return df
+
 
 
 def build_team_context(season: str, player_team_id: int, next_game: dict) -> TeamContext:
@@ -41,7 +49,23 @@ def build_team_context(season: str, player_team_id: int, next_game: dict) -> Tea
 
     matchup = f'{next_game["awayTeam"]["teamTricode"]} @ {next_game["homeTeam"]["teamTricode"]}'
 
-    df = get_team_advanced_df(season=season)
+    try:
+        df = get_team_advanced_df(season=season)
+    except Exception:
+        # Fallback: neutral context so the app still runs
+        # These values make pace_factor = 1 and def_factor = 1.
+        return TeamContext(
+            team_id=player_team_id,
+            opp_team_id=opp_id,
+            is_home=is_home,
+            matchup_text=matchup,
+            team_pace=100.0,
+            opp_pace=100.0,
+            opp_def_rating=110.0,
+            league_pace=100.0,
+            league_def_rating=110.0,
+        )
+
 
     def _get(team_id: int, col: str) -> float:
         row = df[df["TEAM_ID"] == team_id]

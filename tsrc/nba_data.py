@@ -4,12 +4,34 @@ import json
 from pathlib import Path
 import pandas as pd
 
+
+
 from nba_api.stats.static import players, teams
 from nba_api.stats.endpoints import (
     playergamelog,
     teamgamelog,
     leaguedashteamstats,
 )
+
+from nba_api.stats.library.http import NBAStatsHTTP
+from nba_http import NBARetrySession
+
+# Create a hardened session
+_retry = NBARetrySession(timeout=120, max_retries=4)
+
+# Save original send method
+_orig_send = NBAStatsHTTP.send_api_request
+
+def _patched_send(self, *args, **kwargs):
+    # Force nba_api to use our requests.Session
+    self.get_session = lambda: _retry.session
+    return _orig_send(self, *args, **kwargs)
+
+# Monkeypatch the class
+NBAStatsHTTP.send_api_request = _patched_send
+
+print("NBAStatsHTTP patched: timeout =", _retry.timeout)
+
 
 # -----------------------------
 # Cache setup

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Slot Machine</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="back" href="../index.html">← Arcade</a>
+      <h1>🎰 Slot Machine</h1>
+      <div class="hud">
+        <div class="pill">Bankroll: <b id="bankroll">$1000</b></div>
+        <div class="pill">Bet: <b id="betLabel">$10</b></div>
+        <div class="pill">Last Win: <b id="lastWin">$0</b></div>
+      </div>
+    </header>
+
+    <div class="machine">
+      <div class="reels" aria-label="slot reels">
+        <div class="reel">
+          <div class="window" id="reel0"></div>
+        </div>
+        <div class="reel">
+          <div class="window" id="reel1"></div>
+        </div>
+        <div class="reel">
+          <div class="window" id="reel2"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="left">
+          <div class="row">
+            <span class="muted">Bet</span>
+            <input id="betInput" type="number" min="1" step="1" value="10" />
+            <button id="maxBtn">Max</button>
+          </div>
+
+          <div class="row">
+            <button id="spinBtn" class="primary">SPIN</button>
+            <button id="autoBtn">Auto (10)</button>
+            <button id="resetBtn" class="danger">Reset $</button>
+          </div>
+
+          <div id="msg" class="msg">Set your bet and spin.</div>
+        </div>
+
+        <div class="right">
+          <div class="paytitle">Paytable — 5 paylines (Top / Mid / Bottom / 2 Diagonals)</div>
+
+          <div id="paytable" class="paytable"></div>
+        </div>
+      </div>
+
+      <div class="chip" id="chip">🟡 +$0</div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

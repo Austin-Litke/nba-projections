@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Winner Arcade</title>
+  <style>
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:#0b1220;color:#fff}
+    .wrap{max-width:900px;margin:0 auto;padding:24px}
+    h1{margin:0 0 10px;font-size:26px}
+    p{margin:0 0 18px;color:#b8c6d8}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+    a.card{
+      display:block;text-decoration:none;color:#fff;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:16px;padding:16px;
+      transition:.15s transform,.15s background;
+    }
+    a.card:hover{transform:translateY(-2px);background:rgba(255,255,255,.09)}
+    .tag{display:inline-block;margin-top:10px;font-size:12px;color:#b8c6d8}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎰 Winner Arcade</h1>
+    <p>Pick a game:</p>
+    <div class="grid">
+      <a class="card" href="./blackjack/index.html">
+        <h2 style="margin:0 0 6px">♠ Blackjack</h2>
+        <div class="tag">Cards + betting</div>
+      </a>
+      <a class="card" href="./slot/index.html">
+        <h2 style="margin:0 0 6px">🎰 Slot Machine</h2>
+        <div class="tag">Spin reels + paylines</div>
+      </a>
+      <a class="card" href="./roulette/index.html">
+        <h2 style="margin:0 0 6px">🎡 Roulette</h2>
+        <div class="tag">Wheel + bets</div>
+      </a>
+
+
+    </div>
+  </div>
+</body>
+</html>

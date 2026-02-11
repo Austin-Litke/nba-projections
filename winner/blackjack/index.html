@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Blackjack</title>
+  <link rel="stylesheet" href="styles.css" />
+  <a class="back" href="../index.html">← Arcade</a>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>♠ Blackjack</h1>
+      <div class="hud">
+        <div class="pill">Bankroll: <b id="bankroll">$1000</b></div>
+        <div class="pill">Bet: <b id="betLabel">$25</b></div>
+        <div class="pill">Round: <b id="round">1</b></div>
+      </div>
+    </header>
+
+    <div class="table">
+      <div class="felt">
+        <div class="lane">
+          <div class="handbox">
+            <div class="label"><span>Dealer</span><span class="score" id="dealerScore">—</span></div>
+            <div class="cards" id="dealerCards"></div>
+          </div>
+
+          <div class="handbox">
+            <div class="label"><span>You</span><span class="score" id="playerScore">—</span></div>
+            <div class="cards" id="playerCards"></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="betbox">
+            <label class="muted">Bet</label>
+            <input id="betInput" type="number" min="1" step="1" value="25" />
+            <button id="dealBtn" class="primary">Deal</button>
+          </div>
+
+          <div class="btns">
+            <button id="hitBtn" disabled>Hit</button>
+            <button id="standBtn" disabled>Stand</button>
+            <button id="doubleBtn" disabled>Double</button>
+            <button id="resetBtn" class="danger">Reset $</button>
+          </div>
+        </div>
+
+        <div id="msg" class="msg">Place a bet and hit Deal.</div>
+        <div class="chip" id="chip">🟡 +$0</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

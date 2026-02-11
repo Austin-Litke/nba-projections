@@ -1,0 +1,19 @@
+run this 
+
+python - <<'PY'
+import requests, time
+url = "https://stats.nba.com/stats/commonallplayers?LeagueID=00&Season=2025-26&IsOnlyCurrentSeason=1"
+headers = {
+  "User-Agent": "Mozilla/5.0",
+  "Referer": "https://www.nba.com/",
+  "Origin": "https://www.nba.com",
+  "Accept": "application/json, text/plain, */*",
+}
+t0 = time.time()
+try:
+    r = requests.get(url, headers=headers, timeout=20)
+    print("status:", r.status_code, "secs:", round(time.time()-t0,2))
+    print("len:", len(r.text))
+except Exception as e:
+    print("error:", type(e).__name__, e, "secs:", round(time.time()-t0,2))
+PY

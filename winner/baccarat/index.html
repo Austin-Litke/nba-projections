@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Baccarat</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="back" href="../index.html">← Arcade</a>
+      <h1>🃏 Baccarat</h1>
+      <div class="hud">
+        <div class="pill">Bankroll: <b id="bankroll">$1000</b></div>
+        <div class="pill">Bet: <b id="betLabel">$10</b></div>
+        <div class="pill">Last Win: <b id="lastWin">$0</b></div>
+      </div>
+    </header>
+
+    <div class="table">
+      <div class="lane">
+        <div class="handbox">
+          <div class="label"><span>Banker</span><span class="score" id="bankerScore">—</span></div>
+          <div class="cards" id="bankerCards"></div>
+        </div>
+
+        <div class="handbox">
+          <div class="label"><span>Player</span><span class="score" id="playerScore">—</span></div>
+          <div class="cards" id="playerCards"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="left">
+          <div class="row">
+            <span class="muted">Bet Amount</span>
+            <input id="betInput" type="number" min="1" step="1" value="10" />
+            <button id="maxBtn">Max</button>
+          </div>
+
+          <div class="row">
+            <span class="muted">Bet On</span>
+            <select id="betOn">
+              <option value="player">Player (1:1)</option>
+              <option value="banker">Banker (0.95:1)</option>
+              <option value="tie">Tie (8:1)</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <button id="dealBtn" class="primary">DEAL</button>
+            <button id="revealAllBtn">Reveal All</button>
+            <button id="resetBtn" class="danger">Reset $</button>
+          </div>
+
+          <div id="msg" class="msg">Pick a bet and deal. Click cards to reveal.</div>
+        </div>
+
+        <div class="right">
+          <div class="rulesTitle">How it works</div>
+          <div class="rules">
+            <div>Cards total is last digit only (e.g., 7+8=15 → 5)</div>
+            <div>Natural <b>8/9</b> ends the round immediately</div>
+            <div>Player/Banker draw rules are automatic</div>
+            <div>Click cards to flip them (more intense 😈)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chip" id="chip">🟡 +$0</div>
+
+      <!-- Hype overlay -->
+      <div class="hype" id="hype">
+        <div class="hypeInner">
+          <div class="hypeTitle" id="hypeTitle">NATURAL WIN!</div>
+          <div class="hypeSub" id="hypeSub">🔥 9 beats 7 🔥</div>
+        </div>
+        <div class="confetti" id="confetti"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

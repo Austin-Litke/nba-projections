@@ -18,6 +18,10 @@ const els = {
   reb: document.getElementById("reb"),
   ast: document.getElementById("ast"),
   playerNote: document.getElementById("playerNote"),
+
+  // NEW: last 5 games container inside the modal
+  last5: document.getElementById("playerLast5"),
+
   closeModalBtn: document.getElementById("closeModalBtn"),
 };
 
@@ -182,7 +186,7 @@ async function loadRoster(teamId, teamName){
       return;
     }
 
-    els.sideMeta.textContent = `${athletes.length} players — click a player for season averages`;
+    els.sideMeta.textContent = `${athletes.length} players — click a player for season averages + last 5 games`;
 
     for (const p of athletes){
       const id = p.id || p.athlete?.id;
@@ -212,6 +216,53 @@ async function loadRoster(teamId, teamName){
   }
 }
 
+/* ----------------- NEW: last 5 games helpers ----------------- */
+
+function renderLast5(games){
+  if (!els.last5) return;
+
+  if (!Array.isArray(games) || games.length === 0){
+    els.last5.innerHTML = `<div class="muted">No recent games found.</div>`;
+    return;
+  }
+
+  els.last5.innerHTML = games.map(g => {
+    const date = g.date ?? "—";
+    const opp = g.opponent ?? "—";
+    const result = g.result ?? "";
+    const score = g.score ? ` (${escapeHtml(g.score)})` : "";
+
+    const min = (g.min ?? "—");
+    const pts = (g.pts ?? "—");
+    const reb = (g.reb ?? "—");
+    const ast = (g.ast ?? "—");
+
+    return `
+      <div class="last5-row">
+        <div class="left">${escapeHtml(date)} vs ${escapeHtml(opp)} ${escapeHtml(result)}${score}</div>
+        <div class="right">${min} MIN • ${pts} PTS • ${reb} REB • ${ast} AST</div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function loadLast5(athleteId){
+  if (!els.last5) return;
+
+  els.last5.innerHTML = `<div class="muted">Loading last 5 games…</div>`;
+
+  try{
+    const res = await fetch(`/api/nba/player_gamelog?athleteId=${athleteId}&limit=5`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderLast5(data.games || []);
+  } catch (e){
+    els.last5.innerHTML = `<div class="muted">Could not load last 5 games. (${escapeHtml(e.message)})</div>`;
+  }
+}
+
+/* ----------------- END new helpers ----------------- */
+
 async function loadPlayer(athleteId, name){
   openModal(true);
   els.playerName.textContent = name;
@@ -220,6 +271,10 @@ async function loadPlayer(athleteId, name){
   els.reb.textContent = "—";
   els.ast.textContent = "—";
   els.playerNote.textContent = "";
+
+  // NEW: clear + load last 5 games in parallel
+  if (els.last5) els.last5.innerHTML = "";
+  loadLast5(athleteId); // fire-and-forget (does its own loading state)
 
   try{
     const res = await fetch(`/api/nba/player?athleteId=${athleteId}`);

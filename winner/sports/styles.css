@@ -143,3 +143,38 @@ button.ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,25
 }
 .statLabel{color:var(--muted);font-weight:900;font-size:12px}
 .statVal{font-weight:1000;font-size:26px;margin-top:6px}
+
+.last5-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.last5-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  font-size: 14px;
+}
+
+.last5-row .left {
+  opacity: 0.95;
+}
+
+.last5-row .right {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.muted {
+  opacity: 0.75;
+  font-size: 14px;
+}
+#playerLast5 { display: grid !important; }
+.player-section { margin-top: 14px; }
+.last5-row { color: inherit; }

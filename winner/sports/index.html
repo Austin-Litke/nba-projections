@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sports Room - NBA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="back" href="../index.html">← Arcade</a>
+      <h1>🏟️ Sports Room (NBA)</h1>
+      <div class="hud">
+        <div class="pill">Auto refresh: <b id="refreshLabel">15s</b></div>
+        <button id="refreshBtn">Refresh</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <div class="card">
+        <div class="toprow">
+          <div class="title">Today’s Games</div>
+          <div class="muted" id="dateLabel">—</div>
+        </div>
+        <div id="status" class="status">Loading…</div>
+        <div id="games" class="games"></div>
+        <div class="foot muted">Tip: click a team to open its roster.</div>
+      </div>
+
+      <aside class="side" id="side">
+        <div class="sideTop">
+          <div class="sideTitle" id="sideTitle">Roster</div>
+          <button id="closeSideBtn" class="ghost">✕</button>
+        </div>
+        <div class="sideMeta muted" id="sideMeta">—</div>
+        <div class="roster" id="roster"></div>
+      </aside>
+    </div>
+
+    <!-- Player modal -->
+    <div class="modal" id="modal">
+      <div class="modalInner">
+        <div class="modalTop">
+          <div class="modalTitle" id="playerName">Player</div>
+          <button id="closeModalBtn" class="ghost">✕</button>
+        </div>
+        <div class="modalBody">
+          <div class="muted" id="playerTeam">—</div>
+
+          <div class="statsRow">
+            <div class="stat">
+              <div class="statLabel">PTS</div>
+              <div class="statVal" id="pts">—</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">REB</div>
+              <div class="statVal" id="reb">—</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">AST</div>
+              <div class="statVal" id="ast">—</div>
+            </div>
+          </div>
+
+          <div class="muted small" id="playerNote"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot muted">
+      Data via ESPN hidden JSON endpoints (served through your local proxy). :contentReference[oaicite:4]{index=4}
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

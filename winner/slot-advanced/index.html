@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Advanced Slot</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="back" href="../index.html">← Arcade</a>
+      <h1>🎰 Slot Advanced</h1>
+
+      <div class="hud">
+        <div class="pill">Bankroll: <b id="bankroll">$0</b></div>
+        <button id="resetBtn" class="ghost">Reset ($1000)</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="toprow">
+          <div class="title">Spin</div>
+          <div class="muted">5×3 • 243 ways • wild + scatter • free spins</div>
+        </div>
+
+        <div class="slotFrame">
+          <div class="frameTop">
+            <div class="bars">
+              <div class="counter">Free Spins: <b id="fsCount">0</b></div>
+              <div class="counter">FS Mult: <b id="fsMult">1</b>×</div>
+              <div class="counter">Last Win: <b id="lastWin">$0</b></div>
+            </div>
+          </div>
+
+          <div id="grid" class="grid"></div>
+
+          <div class="controls">
+            <div class="box">
+              <div class="muted">Bet</div>
+              <div class="betRow2">
+                <input id="betInput" type="number" min="1" step="1" value="10"/>
+                <button id="maxBtn" class="ghost">Max</button>
+              </div>
+              <div class="betRow">
+                <button class="chip" data-chip="1">$1</button>
+                <button class="chip" data-chip="5">$5</button>
+                <button class="chip" data-chip="25">$25</button>
+                <button class="chip" data-chip="100">$100</button>
+                
+              </div>
+            </div>
+
+            <div class="box">
+              <div class="muted">Controls</div>
+              <div class="actions">
+                <button id="spinBtn" class="primary">Spin</button>
+                <button id="autoBtn" class="tog">Autoplay: Off</button>
+                <button id="turboBtn" class="tog">Turbo: Off</button>
+                <button id="buyBonusBtn" class="ghost">Buy Bonus</button>
+
+              </div>
+              <div class="muted small" style="margin-top:10px">
+                Tip: scatters (🔥) trigger free spins.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="status" class="status">Ready.</div>
+      </section>
+
+      <aside class="card">
+        <div class="toprow">
+          <div class="title">History</div>
+          <div class="muted">Last 10 spins</div>
+        </div>
+        <div id="history" class="history"></div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Big win overlay -->
+  <div class="overlay" id="overlay">
+    <div class="bigWin">
+      <h2 id="bigWinTitle">BIG WIN!</h2>
+      <div class="amt" id="bigWinAmt">$0</div>
+      <div class="sub" id="bigWinSub">Nice hit.</div>
+      <button id="closeOverlayBtn" class="primary">Continue</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="bonusOverlay">
+  <div class="bonusWin">
+    <div class="bonusTop">
+      <h2>🟣 Hold & Spin Bonus</h2>
+      <div class="muted">Land a ball to reset spins to 3.</div>
+    </div>
+
+    <div class="bonusHud">
+      <div class="counter">Spins Left: <b id="bonusLeft">3</b></div>
+      <div class="counter">Total: <b id="bonusTotal">$0</b></div>
+    </div>
+
+    <div id="bonusGrid" class="bonusGrid"></div>
+
+    <div class="bonusActions">
+      <button id="bonusSpinBtn" class="primary">Respin</button>
+      <button id="bonusCloseBtn" class="ghost" disabled>Close</button>
+    </div>
+
+    <div class="muted small" id="bonusNote"></div>
+  </div>
+</div>
+
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

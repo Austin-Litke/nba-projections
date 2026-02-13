@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crash</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="back" href="../index.html">← Arcade</a>
+      <h1>✈️ Crash</h1>
+
+      <div class="hud">
+        <div class="pill">Bankroll: <b id="bankroll">$0</b></div>
+        <button id="resetBtn" class="ghost">Reset ($1000)</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="toprow">
+          <div class="title">Round</div>
+          <div class="muted" id="roundStatus">Waiting…</div>
+        </div>
+
+        <div class="stage">
+          <div class="sky">
+            <div class="plane" id="plane">✈️</div>
+            <div class="boom" id="boom">💥</div>
+          </div>
+
+          <div class="mult">
+            <div class="multLabel">Multiplier</div>
+            <div class="multVal" id="multVal">1.00×</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="betBox">
+            <div class="muted">Bet</div>
+
+            <div class="betRow">
+              <button class="chip" data-chip="1">$1</button>
+              <button class="chip" data-chip="5">$5</button>
+              <button class="chip" data-chip="25">$25</button>
+              <button class="chip" data-chip="100">$100</button>
+            </div>
+
+            <div class="betRow2">
+              <input id="betInput" type="number" min="1" step="1" value="10" />
+              <button id="maxBtn" class="ghost">Max</button>
+            </div>
+          </div>
+
+          <div class="actionBox">
+            <button id="startBtn" class="primary">Start Round</button>
+            <button id="cashoutBtn" class="danger" disabled>Cash Out</button>
+            <div class="muted small" id="msg">Place a bet and start.</div>
+          </div>
+        </div>
+
+        <div class="foot muted">
+          Tip: cash out anytime before the crash. Higher multiplier = higher risk.
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="toprow">
+          <div class="title">History</div>
+          <div class="muted">Last 10</div>
+        </div>
+        <div class="history" id="history"></div>
+      </aside>
+    </main>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

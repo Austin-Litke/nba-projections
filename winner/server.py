@@ -327,6 +327,56 @@ def build_last_games(athlete_id: int, limit: int):
         "perGame": per_game_dbg[:10]
     }
 
+
+def build_vs_opponent(athlete_id: int, opponent_team_id: int, limit: int):
+    gamelog_url = ESPN_WEB_GAMELOG.format(athleteId=athlete_id)
+    gamelog_json = safe_json_load(http_get(gamelog_url))
+
+    items, dbg = parse_gamelog_events(gamelog_json)
+    if items is None:
+        return [], {"method": "vs-opponent", **dbg}
+
+    out = []
+    opp_id_str = str(opponent_team_id)
+
+    for game_id, ev in items:
+        # opponent info comes from gamelog event
+        opp = ev.get("opponent") or {}
+        ev_opp_id = str(opp.get("teamId") or "")
+
+        if ev_opp_id != opp_id_str:
+            continue
+
+        summary_json, used_url = fetch_summary_json(game_id)
+        line, line_dbg = extract_player_line_from_summary(summary_json, athlete_id)
+
+        row = {
+            "gameId": game_id,
+            "date": (ev.get("gameDate") or ev.get("date") or "")[:10],
+            "opponent": opp.get("displayName") or ev.get("opponent"),
+            "result": ev.get("gameResult"),
+            "score": ev.get("score"),
+            "min": None,
+            "pts": None,
+            "reb": None,
+            "ast": None
+        }
+
+        if line:
+            row.update(line)
+
+        out.append(row)
+
+        if len(out) >= int(limit):
+            break
+
+    return out, {
+        "method": "vs-opponent",
+        "opponentTeamId": opponent_team_id,
+        "matchedGames": len(out)
+    }
+
+
 # ---------------- HTTP HANDLER ----------------
 
 class Handler(SimpleHTTPRequestHandler):
@@ -455,6 +505,7 @@ class Handler(SimpleHTTPRequestHandler):
                 traceback.print_exc()
                 self.send_json(500, {"error": str(e)})
             return
+
 
         super().do_GET()
 

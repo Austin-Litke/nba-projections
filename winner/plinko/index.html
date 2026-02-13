@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Plinko</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="back" href="../index.html">← Arcade</a>
+      <h1>🟠 Plinko</h1>
+
+      <div class="hud">
+        <div class="pill">Bankroll: <b id="bankroll">$0</b></div>
+        <button id="resetBtn" class="ghost">Reset ($1000)</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="toprow">
+          <div class="title">Board</div>
+          <div class="muted" id="status">Drop a ball.</div>
+        </div>
+
+        <div class="boardWrap">
+          <canvas id="cv" width="520" height="640"></canvas>
+        </div>
+
+        <div class="controls">
+          <div class="box">
+            <div class="muted">Bet</div>
+            <div class="betRow2">
+              <input id="betInput" type="number" min="1" step="1" value="10" />
+              <button id="maxBtn" class="ghost">Max</button>
+            </div>
+
+            <div class="betRow">
+              <button class="chip" data-chip="1">$1</button>
+              <button class="chip" data-chip="5">$5</button>
+              <button class="chip" data-chip="25">$25</button>
+              <button class="chip" data-chip="100">$100</button>
+            </div>
+          </div>
+
+          <div class="box">
+            <div class="muted">Risk</div>
+            <div class="riskRow">
+              <button class="riskBtn" data-risk="low">Low</button>
+              <button class="riskBtn on" data-risk="mid">Mid</button>
+              <button class="riskBtn" data-risk="high">High</button>
+            </div>
+
+            <button id="dropBtn" class="primary">Drop Ball</button>
+            <div class="muted small" id="note">Tip: higher risk = spicier edges.</div>
+          </div>
+        </div>
+
+        <div class="foot muted">
+          Physics is simplified but feels like Plinko. Multipliers are shown on the bins.
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="toprow">
+          <div class="title">Recent Drops</div>
+          <div class="muted">Last 12</div>
+        </div>
+        <div class="history" id="history"></div>
+      </aside>
+    </main>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

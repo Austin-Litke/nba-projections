@@ -45,9 +45,11 @@
           <div class="modalTitle" id="playerName">Player</div>
           <button id="closeModalBtn" class="ghost">✕</button>
         </div>
+
         <div class="modalBody">
           <div class="muted" id="playerTeam">—</div>
 
+          <!-- Season averages -->
           <div class="statsRow">
             <div class="stat">
               <div class="statLabel">PTS</div>
@@ -63,26 +65,41 @@
             </div>
           </div>
 
+          <!-- Projection -->
           <div class="statsRow">
             <div class="stat">
               <div class="statLabel">PROJ PTS</div>
-              <div class="statVal" id="projPts">—</div>
+              <div class="statVal" id="pPts">—</div>
             </div>
             <div class="stat">
               <div class="statLabel">PROJ REB</div>
-              <div class="statVal" id="projReb">—</div>
+              <div class="statVal" id="pReb">—</div>
             </div>
             <div class="stat">
               <div class="statLabel">PROJ AST</div>
-              <div class="statVal" id="projAst">—</div>
+              <div class="statVal" id="pAst">—</div>
             </div>
           </div>
+          <div class="muted small" id="projNote"></div>
 
-          <div class="player-section">
-              <h3>Last 5 Games</h3>
-              <div id="playerLast5" class="last5-list"></div>
+          <!-- Manual line assessment -->
+          <div class="lineRow">
+            <label class="muted small">Manual Line:</label>
+            <input id="manualLine" type="number" step="0.5" placeholder="e.g. 25.5" />
+            <select id="manualStat">
+              <option value="pts">PTS</option>
+              <option value="reb">REB</option>
+              <option value="ast">AST</option>
+            </select>
+            <button id="assessBtn">Assess</button>
           </div>
+          <div id="assessResult" class="muted small">Enter a line and press Assess.</div>
 
+          <!-- Last 5 games -->
+          <div class="player-section">
+            <h3>Last 5 Games</h3>
+            <div id="playerLast5" class="last5-list"></div>
+          </div>
 
           <div class="muted small" id="playerNote"></div>
         </div>
@@ -90,11 +107,10 @@
     </div>
 
     <div class="foot muted">
-      Data via ESPN hidden JSON endpoints (served through your local proxy). :contentReference[oaicite:4]{index=4}
+      Data via ESPN hidden JSON endpoints (served through your local proxy).
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=2"></script>
-
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

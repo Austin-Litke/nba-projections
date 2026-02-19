@@ -219,13 +219,29 @@ function renderBonusUI() {
   els.bonusTotal.textContent = fmt(bonusState.total);
 
   els.bonusGrid.innerHTML = "";
-  for (let i = 0; i < HOLDSPIN_DIM.CELLS; i++) {
+    for (let i = 0; i < HOLDSPIN_DIM.CELLS; i++) {
     const cell = document.createElement("div");
     const v = bonusState.filled[i];
+
     cell.className = "bonusCell" + (v != null ? " filled" : "");
-    cell.textContent = (v != null) ? `$${v}` : "";
+
+    if (v) {
+      if (v.kind === "jp") {
+        cell.classList.add("jp");
+        cell.innerHTML = `<div style="text-align:center; line-height:1.05">
+          <div style="font-size:12px; opacity:.9">${v.name}</div>
+          <div style="font-size:18px; font-weight:900">$${v.value}</div>
+        </div>`;
+      } else {
+        cell.textContent = `$${v.value}`;
+      }
+    } else {
+      cell.textContent = "";
+    }
+
     els.bonusGrid.appendChild(cell);
   }
+
 }
 
 async function startHoldSpinBonus(bet, reasonText) {

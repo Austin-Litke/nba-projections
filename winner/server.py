@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 import sys
 import json
@@ -41,6 +42,31 @@ PORT = 8000
 
 def _json_bytes(obj) -> bytes:
     return json.dumps(obj, ensure_ascii=False).encode("utf-8")
+
+
+def _read_json_body(handler: SimpleHTTPRequestHandler) -> dict:
+    length = int(handler.headers.get("Content-Length", "0") or "0")
+    raw = handler.rfile.read(length) if length > 0 else b"{}"
+    try:
+        return json.loads(raw.decode("utf-8", errors="replace"))
+    except Exception:
+        return {}
+
+
+def _normal_cdf(x: float, mu: float, sigma: float) -> float:
+    # Normal CDF using erf (stdlib)
+    if sigma <= 1e-9:
+        return 0.5
+    z = (x - mu) / (sigma * math.sqrt(2.0))
+    return 0.5 * (1.0 + math.erf(z))
+
+
+def _sample_std(vals: list[float]) -> float | None:
+    if not vals or len(vals) < 2:
+        return None
+    m = sum(vals) / len(vals)
+    var = sum((v - m) ** 2 for v in vals) / (len(vals) - 1)
+    return math.sqrt(var)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -123,7 +149,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, {"gamelogUrl": url, "data": data.get("data", data)})
                 return
 
-            # Player: season averages (existing behavior)
+            # Player: season averages
             if parsed.path == "/api/nba/player":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -178,7 +204,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, {"athleteId": int(athlete_id), "games": games, "debug": dbg})
                 return
 
-            # NEW: Player projection
+            # Player projection
             if parsed.path == "/api/nba/player_projection":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -219,9 +245,118 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         # ---------------- STATIC FILES ----------------
-        # Let SimpleHTTPRequestHandler handle everything else.
-        # This serves /index.html, /sports/index.html, /sports/js/main.js, etc.
         return super().do_GET()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+
+        try:
+            # NEW: Assess a manual line (probability of going OVER)
+            # Body: { athleteId, stat: "pts|reb|ast", line: number, opponentTeamId?: number }
+            if parsed.path == "/api/nba/assess_line":
+                body = _read_json_body(self)
+
+                athlete_id = body.get("athleteId")
+                stat = (body.get("stat") or "pts").strip().lower()
+                line = body.get("line")
+                opp_id = body.get("opponentTeamId")  # optional
+
+                try:
+                    athlete_id_int = int(athlete_id)
+                except Exception:
+                    self.send_json(400, {"error": "athleteId must be an integer"})
+                    return
+
+                if stat not in ("pts", "reb", "ast"):
+                    self.send_json(400, {"error": "stat must be one of: pts, reb, ast"})
+                    return
+
+                try:
+                    line_f = float(line)
+                except Exception:
+                    self.send_json(400, {"error": "line must be a number"})
+                    return
+
+                # 1) Build projection mean (μ) using same pipeline as /player_projection
+                season_year = get_current_season_year()
+
+                web_url = ESPN_WEB_STATS.format(athleteId=athlete_id_int)
+                web = safe_json_load(http_get(web_url))
+
+                season_avg = extract_season_averages_from_web_stats(web, preferred_year=season_year)
+                season_minutes = extract_season_avg_minutes_from_web_stats(web, preferred_year=season_year)
+
+                last_games_5, _dbg5 = build_last_games(athlete_id_int, limit=5)
+
+                vs_games = []
+                opp_id_int = None
+                try:
+                    if opp_id is not None and str(opp_id).strip().isdigit():
+                        opp_id_int = int(str(opp_id).strip())
+                except Exception:
+                    opp_id_int = None
+
+                if opp_id_int is not None:
+                    vs_games, _dbgvs = build_vs_opponent(athlete_id_int, opp_id_int, limit=25)
+
+                proj_out = build_projection(season_avg, season_minutes, last_games_5, vs_games)
+                mean = (proj_out.get("projection") or {}).get(stat)
+
+                # fallback to season avg if projection missing
+                if mean is None and isinstance(season_avg, dict):
+                    mean = season_avg.get(stat)
+                if mean is None:
+                    mean = 0.0
+
+                mean = float(mean)
+
+                # 2) Estimate std dev (σ) from recent games (use up to last 10)
+                last_games_10, _dbg10 = build_last_games(athlete_id_int, limit=10)
+                vals = []
+                for g in last_games_10:
+                    v = g.get(stat)
+                    if isinstance(v, (int, float)):
+                        vals.append(float(v))
+
+                sigma = _sample_std(vals)
+
+                # If not enough sample variance, fallback by stat
+                if sigma is None or sigma <= 1e-9:
+                    sigma = 5.0 if stat == "pts" else (3.0 if stat == "reb" else 2.5)
+
+                # 3) Probability P(X > line)
+                # Continuity correction helps with discrete stats.
+                continuity = 0.5
+                threshold = line_f + continuity
+
+                p_over = 1.0 - _normal_cdf(threshold, mean, float(sigma))
+                p_over = max(0.0, min(1.0, p_over))
+
+                note = f"μ={mean:.2f}, σ={float(sigma):.2f}, n={len(vals)} recent games."
+                self.send_json(200, {
+                    "athleteId": athlete_id_int,
+                    "stat": stat,
+                    "line": line_f,
+                    "prob": p_over,
+                    "mean": mean,
+                    "std": float(sigma),
+                    "n": len(vals),
+                    "note": note,
+                    "meta": {
+                        "opponentTeamId": opp_id_int,
+                        "seasonYearUsed": season_year,
+                        "webStatsUrl": web_url,
+                    }
+                })
+                return
+
+        except Exception as e:
+            traceback.print_exc()
+            self.send_json(500, {"error": str(e)})
+            return
+
+        # If unknown POST route
+        self.send_json(404, {"error": "Not found"})
 
 
 def run():
@@ -236,6 +371,7 @@ def run():
     print("  /api/nba/player?athleteId=1966")
     print("  /api/nba/player_gamelog?athleteId=1966&limit=5")
     print("  /api/nba/player_projection?athleteId=1966&opponentTeamId=6")
+    print("  POST /api/nba/assess_line  {athleteId, stat, line, opponentTeamId?}")
 
     httpd = HTTPServer(("0.0.0.0", PORT), Handler)
     httpd.serve_forever()

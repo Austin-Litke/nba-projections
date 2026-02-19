@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kronos Unleashed (Original)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="back" href="../index.html">← Arcade</a>
+      <div class="title">
+        <h1>⏳ Kronos Unleashed</h1>
+        <div class="sub">Original “titan-time” super slot • 6×5 ways • cascades • time-shift • relic bonus</div>
+      </div>
+      <div class="bank">
+        <div class="pill">Bankroll: <b id="bankroll">$0</b></div>
+        <button id="resetBtn" class="ghost">Reset</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="hud">
+          <div class="pill">Bet: $<input id="betInput" type="number" min="1" value="10" /></div>
+          <button id="maxBtn" class="ghost">Max</button>
+          <button class="chip" data-chip="1">+1</button>
+          <button class="chip" data-chip="5">+5</button>
+          <button class="chip" data-chip="10">+10</button>
+
+          <div class="sp"></div>
+
+          <div class="pill">Free Spins: <b id="fsCount">0</b></div>
+          <div class="pill">FS Mult: <b id="fsMult">1</b>x</div>
+          <div class="pill">Last Win: <b id="lastWin">$0</b></div>
+        </div>
+
+        <div class="actions">
+          <button id="spinBtn" class="primary">SPIN</button>
+          <button id="autoBtn" class="tog">Autoplay: Off</button>
+          <button id="turboBtn" class="tog">Turbo: Off</button>
+          <button id="buyBonusBtn" class="ghost">Buy Relic Bonus</button>
+        </div>
+
+        <div class="status" id="status">Ready.</div>
+
+        <div class="gridWrap">
+          <div class="grid" id="grid"></div>
+        </div>
+
+        <div class="featureRow">
+          <div class="feat"><b>Features:</b> Cascades • Expanding Wilds • Time Shift respins • Free Spins • Relic Hold&Spin</div>
+          <div class="feat"><b>Jackpots:</b> MINI 5× • MINOR 10× • MAJOR 50× • GRAND 1000× (full grid in relic bonus)</div>
+        </div>
+
+        <div class="history" id="history"></div>
+      </section>
+    </main>
+
+    <!-- Big Win -->
+    <div class="overlay" id="overlay">
+      <div class="bigwin">
+        <div class="bwTitle" id="bigWinTitle">BIG WIN!</div>
+        <div class="bwAmt" id="bigWinAmt">$0.00</div>
+        <div class="bwSub" id="bigWinSub">—</div>
+        <button id="closeOverlayBtn" class="primary">Nice</button>
+      </div>
+    </div>
+
+    <!-- Relic Bonus -->
+    <div class="overlay" id="bonusOverlay">
+      <div class="bonusWin">
+        <div class="bonusTop">
+          <h2>🪙 Relic Lock Bonus</h2>
+          <div class="muted">Land relics to reset spins to 3. Fill the grid to win GRAND.</div>
+        </div>
+
+        <div class="bonusHud">
+          <div class="pill">Spins Left: <b id="bonusLeft">3</b></div>
+          <div class="pill">Total: <b id="bonusTotal">$0</b></div>
+        </div>
+
+        <div id="bonusGrid" class="bonusGrid"></div>
+
+        <div class="bonusActions">
+          <button id="bonusSpinBtn" class="primary">RESPIN</button>
+          <button id="bonusCloseBtn" class="ghost" disabled>Close</button>
+        </div>
+
+        <div class="muted small" id="bonusNote"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

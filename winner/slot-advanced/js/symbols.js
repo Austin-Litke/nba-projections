@@ -10,7 +10,7 @@ export const SYMBOLS = {
 
   WILD: { name: "⭐", payout: null, weight: 3, wild: true },
   SCAT: { name: "🔥", payout: null, weight: 2, scatter: true },
-  BONUS: { name: "🟣", payout: null, weight: 30, bonus: true },
+  BONUS: { name: "🟣", payout: null, weight: 0, bonus: true },
 
 };
 

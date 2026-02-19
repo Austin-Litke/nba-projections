@@ -1,5 +1,3 @@
-// sports/js/main.js
-
 const els = {
   games: document.getElementById("games"),
   status: document.getElementById("status"),
@@ -16,29 +14,41 @@ const els = {
   modal: document.getElementById("modal"),
   playerName: document.getElementById("playerName"),
   playerTeam: document.getElementById("playerTeam"),
-
-  // Season avg numbers (already in your HTML)
   pts: document.getElementById("pts"),
   reb: document.getElementById("reb"),
   ast: document.getElementById("ast"),
-
-  // NEW: projected numbers (you must add these ids in index.html)
-  projPts: document.getElementById("projPts"),
-  projReb: document.getElementById("projReb"),
-  projAst: document.getElementById("projAst"),
-
   playerNote: document.getElementById("playerNote"),
+  closeModalBtn: document.getElementById("closeModalBtn"),
+
+  // last 5
   last5: document.getElementById("playerLast5"),
 
-  closeModalBtn: document.getElementById("closeModalBtn"),
+  // projection
+  pPts: document.getElementById("pPts"),
+  pReb: document.getElementById("pReb"),
+  pAst: document.getElementById("pAst"),
+  projNote: document.getElementById("projNote"),
+
+  // manual line assess
+  manualLine: document.getElementById("manualLine"),
+  manualStat: document.getElementById("manualStat"),
+  assessBtn: document.getElementById("assessBtn"),
+  assessResult: document.getElementById("assessResult"),
 };
 
-// Context for the currently-selected matchup (set when user clicks a team button on a game card)
-let currentTeamId = null;
-let currentTeamName = null;
-let currentOpponentTeamId = null;
-
 const REFRESH_MS = 15000;
+const MAX_LOOKAHEAD_DAYS = 14;
+
+let currentAthleteId = null;
+
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
 function fmtLocalTime(iso){
   const d = new Date(iso);
@@ -64,15 +74,6 @@ function openModal(on){
 
 function openSide(on){
   els.side.style.display = on ? "" : "none";
-}
-
-function escapeHtml(s){
-  return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
 }
 
 function gameCard(g){
@@ -126,14 +127,6 @@ function gameCard(g){
       const teamId = btn.dataset.teamid;
       const teamName = btn.dataset.teamname || "Team";
       if (!teamId) return;
-
-      // Set the opponent for THIS matchup, based on which team button was clicked
-      const opponentId = (String(teamId) === String(awayId)) ? homeId : awayId;
-
-      currentTeamId = teamId;
-      currentTeamName = teamName;
-      currentOpponentTeamId = opponentId || null;
-
       await loadRoster(teamId, teamName);
     });
   });
@@ -141,23 +134,17 @@ function gameCard(g){
   return div;
 }
 
-/**
- * Shows today's games if any; otherwise searches forward for the next game day (up to 14 days).
- */
+function yyyymmddFromDate(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}${m}${day}`;
+}
+
 async function load(){
-  const MAX_LOOKAHEAD_DAYS = 14;
   const today = new Date();
-
   els.status.textContent = "Loading…";
-  els.dateLabel.textContent = "Searching for next game day…";
   clearGames();
-
-  function yyyymmddFromDate(d){
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    const day = String(d.getDate()).padStart(2,"0");
-    return `${y}${m}${day}`;
-  }
 
   let chosenDate = null;
   let chosenEvents = null;
@@ -175,7 +162,6 @@ async function load(){
 
     const data = await res.json();
     const events = data.events || [];
-
     if (events.length){
       chosenDate = d;
       chosenEvents = events;
@@ -206,8 +192,7 @@ async function loadRoster(teamId, teamName){
   openSide(true);
   els.sideTitle.textContent = `${teamName} — Roster`;
   els.sideMeta.textContent = "Loading roster…";
-  els.roster.innerHTML = "";
-  els.sideMeta.textContent = "—";
+  clearRoster();
 
   try{
     const res = await fetch(`/api/nba/roster?teamId=${teamId}`);
@@ -231,7 +216,7 @@ async function loadRoster(teamId, teamName){
       return;
     }
 
-    els.sideMeta.textContent = `${athletes.length} players — click a player for season averages + last 5 games + projection`;
+    els.sideMeta.textContent = `${athletes.length} players — click a player`;
 
     for (const p of athletes){
       const id = p.id || p.athlete?.id;
@@ -261,7 +246,7 @@ async function loadRoster(teamId, teamName){
   }
 }
 
-/* ----------------- Last 5 games helpers ----------------- */
+/* ----------------- Last 5 games ----------------- */
 
 function renderLast5(games){
   if (!els.last5) return;
@@ -293,7 +278,6 @@ function renderLast5(games){
 
 async function loadLast5(athleteId){
   if (!els.last5) return;
-
   els.last5.innerHTML = `<div class="muted">Loading last 5 games…</div>`;
 
   try{
@@ -306,53 +290,96 @@ async function loadLast5(athleteId){
   }
 }
 
-/* ----------------- Projection loader ----------------- */
+/* ----------------- Projection ----------------- */
 
 async function loadProjection(athleteId){
-  // Default to dashes
-  if (els.projPts) els.projPts.textContent = "—";
-  if (els.projReb) els.projReb.textContent = "—";
-  if (els.projAst) els.projAst.textContent = "—";
+  if (els.pPts) els.pPts.textContent = "—";
+  if (els.pReb) els.pReb.textContent = "—";
+  if (els.pAst) els.pAst.textContent = "—";
+  if (els.projNote) els.projNote.textContent = "Loading projection…";
 
   try{
-    const url = currentOpponentTeamId
-      ? `/api/nba/player_projection?athleteId=${athleteId}&opponentTeamId=${currentOpponentTeamId}`
-      : `/api/nba/player_projection?athleteId=${athleteId}`;
+    const res = await fetch(`/api/nba/player_projection?athleteId=${athleteId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const p = data.projection || {};
 
-    const res = await fetch(url);
+    if (els.pPts) els.pPts.textContent = (typeof p.pts === "number") ? p.pts.toFixed(1) : "—";
+    if (els.pReb) els.pReb.textContent = (typeof p.reb === "number") ? p.reb.toFixed(1) : "—";
+    if (els.pAst) els.pAst.textContent = (typeof p.ast === "number") ? p.ast.toFixed(1) : "—";
+
+    const meta = data.meta || {};
+    const mins = (typeof meta.estMinutes === "number") ? meta.estMinutes.toFixed(1) : "—";
+    const conf = meta.confidence || "—";
+    if (els.projNote) els.projNote.textContent = `Projection (est ${mins} min) • confidence: ${conf}`;
+  } catch (e){
+    if (els.projNote) els.projNote.textContent = `Could not load projection. (${e.message})`;
+  }
+}
+
+/* ----------------- Manual line assess ----------------- */
+
+async function assessManualLine(){
+  if (!currentAthleteId) return;
+
+  const stat = (els.manualStat?.value || "pts").toLowerCase();
+  const lineRaw = els.manualLine?.value;
+  const line = parseFloat(lineRaw);
+
+  if (!Number.isFinite(line)){
+    if (els.assessResult) els.assessResult.textContent = "Enter a valid numeric line (ex: 25.5).";
+    return;
+  }
+
+  if (els.assessResult) els.assessResult.textContent = "Calculating…";
+
+  try{
+    const res = await fetch(`/api/nba/assess_line`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ athleteId: currentAthleteId, stat, line })
+    });
+
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    const p = data.projection || {};
-    if (els.projPts) els.projPts.textContent = (typeof p.pts === "number") ? p.pts.toFixed(1) : "—";
-    if (els.projReb) els.projReb.textContent = (typeof p.reb === "number") ? p.reb.toFixed(1) : "—";
-    if (els.projAst) els.projAst.textContent = (typeof p.ast === "number") ? p.ast.toFixed(1) : "—";
-  } catch {
-    // Keep dashes
+    const prob = (typeof data.prob === "number") ? data.prob : null;
+    const mean = (typeof data.mean === "number") ? data.mean : null;
+    const std = (typeof data.std === "number") ? data.std : null;
+
+    const pct = (prob == null) ? "—" : `${Math.round(prob * 100)}%`;
+    const meanTxt = (mean == null) ? "—" : mean.toFixed(1);
+    const stdTxt = (std == null) ? "—" : std.toFixed(1);
+
+    if (els.assessResult){
+      els.assessResult.innerHTML =
+        `<b>${pct}</b> chance to go OVER ${line.toFixed(1)} ${stat.toUpperCase()}<br/>
+         Model: μ=${meanTxt}, σ=${stdTxt}${data.note ? `<br/>${escapeHtml(data.note)}` : ""}`;
+    }
+  } catch (e){
+    if (els.assessResult) els.assessResult.textContent = `Could not assess line. (${e.message})`;
   }
 }
 
 /* ----------------- Player modal ----------------- */
 
 async function loadPlayer(athleteId, name){
-  openModal(true);
+  currentAthleteId = athleteId;
 
+  openModal(true);
   els.playerName.textContent = name;
   els.playerTeam.textContent = "Loading…";
 
   els.pts.textContent = "—";
   els.reb.textContent = "—";
   els.ast.textContent = "—";
-
-  if (els.projPts) els.projPts.textContent = "—";
-  if (els.projReb) els.projReb.textContent = "—";
-  if (els.projAst) els.projAst.textContent = "—";
-
   els.playerNote.textContent = "";
 
-  if (els.last5) els.last5.innerHTML = "";
-  loadLast5(athleteId);      // last 5 games
-  loadProjection(athleteId); // projection (server route)
+  if (els.assessResult) els.assessResult.textContent = "Enter a line and press Assess.";
+
+  // Load last 5 + projection in parallel (they show their own loading states)
+  loadLast5(athleteId);
+  loadProjection(athleteId);
 
   try{
     const res = await fetch(`/api/nba/player?athleteId=${athleteId}`);
@@ -370,9 +397,9 @@ async function loadPlayer(athleteId, name){
     els.ast.textContent = (typeof ast === "number") ? ast.toFixed(1) : "—";
 
     if (pts == null || reb == null || ast == null){
-      els.playerNote.textContent = "Couldn’t find PTS/REB/AST in ESPN’s stats response (their format can change).";
+      els.playerNote.textContent = "Couldn’t find PTS/REB/AST in ESPN’s stats response for this player.";
     } else {
-      els.playerNote.textContent = "Season per-game averages + projection for the next matchup shown in the scoreboard.";
+      els.playerNote.textContent = "Season per-game averages.";
     }
   } catch (e){
     els.playerTeam.textContent = "—";
@@ -380,7 +407,7 @@ async function loadPlayer(athleteId, name){
   }
 }
 
-/* ----------------- Wire up UI ----------------- */
+/* ----------------- Wire UI ----------------- */
 
 els.refreshBtn.addEventListener("click", load);
 els.refreshLabel.textContent = `${Math.round(REFRESH_MS/1000)}s`;
@@ -388,6 +415,15 @@ els.refreshLabel.textContent = `${Math.round(REFRESH_MS/1000)}s`;
 els.closeSideBtn.addEventListener("click", () => openSide(false));
 els.closeModalBtn.addEventListener("click", () => openModal(false));
 els.modal.addEventListener("click", (e) => { if (e.target === els.modal) openModal(false); });
+
+if (els.assessBtn){
+  els.assessBtn.addEventListener("click", assessManualLine);
+}
+if (els.manualLine){
+  els.manualLine.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") assessManualLine();
+  });
+}
 
 load();
 setInterval(load, REFRESH_MS);

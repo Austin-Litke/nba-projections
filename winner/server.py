@@ -6,7 +6,7 @@ import math
 import os
 import sys
 import json
-import mimetypes
+import time
 import traceback
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -32,12 +32,33 @@ from sports.api.nba_stats import (
 from sports.api.nba_gamelog import (
     build_last_games,
     build_vs_opponent,
+    get_player_line_for_game,   # NEW (tracking actuals)
 )
 from sports.api.nba_projection import (
     build_projection,
 )
 
 PORT = 8000
+
+# ---------------- Tracking storage ----------------
+TRACK_FILE = os.path.join(os.path.dirname(__file__), "sports", "track_history.json")
+
+
+def _load_tracks() -> list[dict]:
+    try:
+        with open(TRACK_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def _save_tracks(rows: list[dict]) -> None:
+    os.makedirs(os.path.dirname(TRACK_FILE), exist_ok=True)
+    tmp = TRACK_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, TRACK_FILE)
 
 
 def _json_bytes(obj) -> bytes:
@@ -92,7 +113,6 @@ class Handler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
 
         # ---------------- NBA API PROXY ROUTES ----------------
-
         try:
             if parsed.path == "/api/nba/scoreboard":
                 qs = parse_qs(parsed.query)
@@ -239,6 +259,32 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, out)
                 return
 
+            # Player vs Opponent (this season only) - used for UI list + projection context
+            if parsed.path == "/api/nba/player_vs_opponent":
+                qs = parse_qs(parsed.query)
+                athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
+                opp_id = (qs.get("opponentTeamId", [""])[0] or "").strip()
+                limit = (qs.get("limit", ["10"])[0] or "10").strip()
+
+                if not athlete_id.isdigit() or not opp_id.isdigit():
+                    self.send_json(400, {"error": "athleteId and opponentTeamId required"})
+                    return
+
+                try:
+                    limit_int = max(1, min(25, int(limit)))
+                except Exception:
+                    limit_int = 10
+
+                games, dbg = build_vs_opponent(int(athlete_id), int(opp_id), limit=limit_int)
+                self.send_json(200, {"athleteId": int(athlete_id), "opponentTeamId": int(opp_id), "games": games, "debug": dbg})
+                return
+
+            # Tracking: list
+            if parsed.path == "/api/nba/track_list":
+                rows = _load_tracks()
+                self.send_json(200, {"rows": rows})
+                return
+
         except Exception as e:
             traceback.print_exc()
             self.send_json(500, {"error": str(e)})
@@ -251,7 +297,7 @@ class Handler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
 
         try:
-            # NEW: Assess a manual line (probability of going OVER)
+            # Assess a manual line (probability of going OVER)
             # Body: { athleteId, stat: "pts|reb|ast", line: number, opponentTeamId?: number }
             if parsed.path == "/api/nba/assess_line":
                 body = _read_json_body(self)
@@ -325,7 +371,6 @@ class Handler(SimpleHTTPRequestHandler):
                     sigma = 5.0 if stat == "pts" else (3.0 if stat == "reb" else 2.5)
 
                 # 3) Probability P(X > line)
-                # Continuity correction helps with discrete stats.
                 continuity = 0.5
                 threshold = line_f + continuity
 
@@ -350,6 +395,87 @@ class Handler(SimpleHTTPRequestHandler):
                 })
                 return
 
+            # Tracking: add a row
+            # Body: { athleteId, stat, line, prob, mean, std, opponentTeamId?, gameId?, playerName? }
+            if parsed.path == "/api/nba/track_add":
+                body = _read_json_body(self)
+
+                try:
+                    athlete_id = int(body.get("athleteId"))
+                except Exception:
+                    self.send_json(400, {"error": "athleteId required"})
+                    return
+
+                stat = (body.get("stat") or "pts").strip().lower()
+                if stat not in ("pts", "reb", "ast"):
+                    self.send_json(400, {"error": "stat must be pts|reb|ast"})
+                    return
+
+                try:
+                    line = float(body.get("line"))
+                    prob = float(body.get("prob"))
+                    mean = float(body.get("mean"))
+                    std = float(body.get("std"))
+                except Exception:
+                    self.send_json(400, {"error": "line/prob/mean/std required (numbers)"})
+                    return
+
+                opponent_team_id = body.get("opponentTeamId")
+                game_id = body.get("gameId")
+                player_name = body.get("playerName") or ""
+
+                row = {
+                    "id": int(time.time() * 1000),
+                    "ts": int(time.time()),
+                    "athleteId": athlete_id,
+                    "playerName": player_name,
+                    "stat": stat,
+                    "line": line,
+                    "prob": prob,
+                    "mean": mean,
+                    "std": std,
+                    "opponentTeamId": int(opponent_team_id) if str(opponent_team_id).isdigit() else None,
+                    "gameId": str(game_id) if game_id else None,
+                    "actual": None,
+                }
+
+                rows = _load_tracks()
+                rows.insert(0, row)
+                _save_tracks(rows)
+
+                self.send_json(200, {"ok": True, "row": row})
+                return
+
+            # Tracking: refresh actuals (fills actual for completed games that have gameId)
+            if parsed.path == "/api/nba/track_refresh":
+                rows = _load_tracks()
+                updated = 0
+
+                for r in rows:
+                    if r.get("actual") is not None:
+                        continue
+
+                    game_id = r.get("gameId")
+                    athlete_id = r.get("athleteId")
+                    stat = r.get("stat")
+
+                    if not game_id or not athlete_id or stat not in ("pts", "reb", "ast"):
+                        continue
+
+                    try:
+                        line = get_player_line_for_game(str(game_id), int(athlete_id))
+                        if line and line.get(stat) is not None:
+                            r["actual"] = float(line.get(stat))
+                            updated += 1
+                    except Exception:
+                        pass
+
+                if updated:
+                    _save_tracks(rows)
+
+                self.send_json(200, {"ok": True, "updated": updated})
+                return
+
         except Exception as e:
             traceback.print_exc()
             self.send_json(500, {"error": str(e)})
@@ -371,7 +497,11 @@ def run():
     print("  /api/nba/player?athleteId=1966")
     print("  /api/nba/player_gamelog?athleteId=1966&limit=5")
     print("  /api/nba/player_projection?athleteId=1966&opponentTeamId=6")
+    print("  /api/nba/player_vs_opponent?athleteId=1966&opponentTeamId=6&limit=10")
     print("  POST /api/nba/assess_line  {athleteId, stat, line, opponentTeamId?}")
+    print("  GET  /api/nba/track_list")
+    print("  POST /api/nba/track_add")
+    print("  POST /api/nba/track_refresh")
 
     httpd = HTTPServer(("0.0.0.0", PORT), Handler)
     httpd.serve_forever()

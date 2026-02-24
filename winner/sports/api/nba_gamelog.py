@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional, Tuple, List
 
 from .nba_client import http_get, safe_json_load, ESPN_WEB_GAMELOG, ESPN_SUMMARY
+from .nba_stats import get_current_season_year
 
 
 def _parse_int(x):
@@ -30,6 +31,17 @@ def _is_nba_team_id(team_id) -> bool:
         return 1 <= n <= 30
     except Exception:
         return False
+
+
+def _current_season_start_date() -> str:
+    """
+    Rough NBA season start heuristic:
+    ESPN season year is like 2026 for 2025-26 season -> start year = 2025.
+    We'll use Oct 1 of start year.
+    """
+    season_year = get_current_season_year()
+    start_year = season_year - 1
+    return f"{start_year}-10-01"
 
 
 def _find_stats_list_for_event(event_obj: dict, names_len: int) -> Optional[list]:
@@ -159,7 +171,7 @@ def build_last_games(athlete_id: int, limit: int = 5) -> Tuple[List[dict], dict]
         opp = ev.get("opponent") or {}
         opp_team_id = opp.get("teamId") or opp.get("id")
 
-        # ✅ Filter: only real NBA opponents
+        # Filter: only real NBA opponents
         if not _is_nba_team_id(opp_team_id):
             debug["filteredOutNonNbaOpponent"] += 1
             continue
@@ -195,7 +207,7 @@ def build_last_games(athlete_id: int, limit: int = 5) -> Tuple[List[dict], dict]
             except Exception:
                 pass
 
-        # If still nothing (DNP / not in boxscore), skip for last-5 purposes
+        # If still nothing (DNP / not in boxscore), skip
         if (min_v is None and pts_v is None and reb_v is None and ast_v is None):
             debug["filteredOutNoStats"] += 1
             continue
@@ -222,5 +234,24 @@ def build_last_games(athlete_id: int, limit: int = 5) -> Tuple[List[dict], dict]
 def build_vs_opponent(athlete_id: int, opponent_team_id: int, limit: int = 25) -> Tuple[List[dict], dict]:
     all_games, dbg = build_last_games(athlete_id, limit=999)
     opp_str = str(opponent_team_id)
-    vs = [g for g in all_games if (g.get("opponentTeamId") == opp_str)]
-    return (vs[:limit], {**dbg, "filteredOpponentTeamId": opp_str, "vsCount": len(vs)})
+
+    season_start = _current_season_start_date()
+
+    def is_this_season(g):
+        d = (g.get("date") or "")
+        # ESPN date looks like "2026-02-12T01:00:00.000+00:00"
+        # Compare the YYYY-MM-DD part.
+        d10 = d[:10]
+        return d10 >= season_start
+
+    vs = [g for g in all_games if (g.get("opponentTeamId") == opp_str and is_this_season(g))]
+    return (vs[:limit], {**dbg, "filteredOpponentTeamId": opp_str, "vsCount": len(vs), "seasonStart": season_start})
+
+
+def get_player_line_for_game(game_id: str, athlete_id: int) -> dict | None:
+    """
+    Used by tracking to fill actual results after a game.
+    Returns {"min": float|None, "pts": int|None, "reb": int|None, "ast": int|None}
+    """
+    line, _url = _fill_stats_from_summary(str(game_id), int(athlete_id))
+    return line

@@ -367,26 +367,63 @@ async function loadVsOpponent(athleteId){
 /* ----------------- Projection ----------------- */
 
 async function loadProjection(athleteId){
+  // keep existing quick UI resets
   if (els.pPts) els.pPts.textContent = "—";
   if (els.pReb) els.pReb.textContent = "—";
   if (els.pAst) els.pAst.textContent = "—";
   if (els.projNote) els.projNote.textContent = "Loading projection…";
 
+  // clear diagnostics
+  const setDiag = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setDiag("diagMinutes", "—");
+  setDiag("diagMinutesStability", "");
+  setDiag("diagOppAdj", "—");
+  setDiag("diagNSamples", "—");
+  setDiag("distPts", "PTS: —");
+  setDiag("distReb", "REB: —");
+  setDiag("distAst", "AST: —");
+  setDiag("fairLine", "Fair line: —");
+  setDiag("altLines", "Alts: —");
+
   try{
-    const oppQ = currentOpponentTeamId ? `&opponentTeamId=${currentOpponentTeamId}` : "";
-    const res = await fetch(`/api/nba/player_projection?athleteId=${athleteId}${oppQ}`);
+    const res = await fetch(`/api/nba/player_projection?athleteId=${athleteId}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    const p = data.projection || {};
 
+    const p = data.projection || {};
+    const dist = data.distribution || {};
+    const meta = data.meta || {};
+
+    // Show median projection in modal stats
     if (els.pPts) els.pPts.textContent = (typeof p.pts === "number") ? p.pts.toFixed(1) : "—";
     if (els.pReb) els.pReb.textContent = (typeof p.reb === "number") ? p.reb.toFixed(1) : "—";
     if (els.pAst) els.pAst.textContent = (typeof p.ast === "number") ? p.ast.toFixed(1) : "—";
 
-    const meta = data.meta || {};
-    const mins = (typeof meta.estMinutes === "number") ? meta.estMinutes.toFixed(1) : "—";
-    const conf = meta.confidence || meta.engine || "—";
-    if (els.projNote) els.projNote.textContent = `Projection (est ${mins} min) • ${conf}`;
+    // proj note -> minutes + confidence
+    const mins = (typeof meta.estMinutes === "number") ? (meta.estMinutes.toFixed(1) + " min") : (meta.minutesMu ? `${meta.minutesMu} min` : "—");
+    const conf = meta.confidence || "—";
+    if (els.projNote) els.projNote.textContent = `Projection (est ${mins}) • confidence: ${conf}`;
+
+    // diagnostics
+    setDiag("diagMinutes", `${meta.minutesMu ?? "—"} ± ${meta.minutesSd ?? "—"}`);
+    setDiag("diagMinutesStability", `(${meta.minutesStability ?? "—"})`);
+    setDiag("diagOppAdj", (meta.oppAdj && meta.oppAdj.pts) ? `pts:${meta.oppAdj.pts}` : "—");
+    setDiag("diagNSamples", meta.nSamples ? `${meta.nSamples} runs` : "—");
+
+    // distribution text
+    const showDist = (stat, elId) => {
+      const d = dist[stat] || {};
+      if (d && d.p10 != null){
+        const txt = `${stat.toUpperCase()}: p10 ${d.p10} — p25 ${d.p25} — p50 ${d.p50} — p75 ${d.p75} — p90 ${d.p90} (mean ${d.mean})`;
+        setDiag(elId, txt);
+      } else {
+        setDiag(elId, `${stat.toUpperCase()}: —`);
+      }
+    };
+    showDist("pts", "distPts");
+    showDist("reb", "distReb");
+    showDist("ast", "distAst");
+
   } catch (e){
     if (els.projNote) els.projNote.textContent = `Could not load projection. (${e.message})`;
   }
@@ -412,49 +449,47 @@ async function assessManualLine(){
     const res = await fetch(`/api/nba/assess_line`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        athleteId: currentAthleteId,
-        stat,
-        line,
-        opponentTeamId: currentOpponentTeamId
-      })
+      body: JSON.stringify({ athleteId: currentAthleteId, stat, line })
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    const prob = (typeof data.prob === "number") ? data.prob : null;
-    const mean = (typeof data.mean === "number") ? data.mean : null;
-    const std = (typeof data.std === "number") ? data.std : null;
+    const prob = data.probOver ?? data.prob ?? data.probability ?? null;
+    const mean = (data.projectionP50 != null) ? data.projectionP50 : (data.mean ?? null);
+    const std = (data.band && data.band.mean) ? data.band.mean : null;
 
     const pct = (prob == null) ? "—" : `${Math.round(prob * 100)}%`;
     const meanTxt = (mean == null) ? "—" : mean.toFixed(1);
-    const stdTxt = (std == null) ? "—" : std.toFixed(1);
 
     if (els.assessResult){
       els.assessResult.innerHTML =
         `<b>${pct}</b> chance to go OVER ${line.toFixed(1)} ${stat.toUpperCase()}<br/>
-         Model: μ=${meanTxt}, σ=${stdTxt}${data.note ? `<br/>${escapeHtml(data.note)}` : ""}`;
+         Model median=${meanTxt}${data.band ? `<br/>Band(p10-p90): ${data.band.p10} - ${data.band.p90}` : ""}`;
     }
 
-    // Save for Track button
-    lastAssessment = {
-      athleteId: currentAthleteId,
-      playerName: els.playerName?.textContent || "",
-      stat,
-      line,
-      prob: data.prob,
-      mean: data.mean,
-      std: data.std,
-      opponentTeamId: currentOpponentTeamId,
-      gameId: currentGameId
-    };
+    // show fair line + alt lines + diagnostics
+    const setDiag = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setDiag("fairLine", `Fair line: ${data.fairLine ?? "—"}`);
+    if (data.altLines && data.altLines.length){
+      const parts = data.altLines.slice(0,7).map(a => `${a.line}: ${Math.round(a.pOver*100)}%`);
+      setDiag("altLines", `Alts: ${parts.join(" • ")}`);
+    } else {
+      setDiag("altLines", "Alts: —");
+    }
+
+    // minutes diag if present
+    if (data.meta){
+      setDiag("diagMinutes", `${data.meta.minutesMu ?? "—"} ± ${data.meta.minutesSd ?? "—"}`);
+      setDiag("diagMinutesStability", `(${data.meta.minutesStability ?? "—"})`);
+      setDiag("diagOppAdj", data.meta.oppAdj ? `pts:${data.meta.oppAdj.pts}` : "—");
+      setDiag("diagNSamples", data.meta.nSamples ? `${data.meta.nSamples} runs` : "—");
+    }
 
   } catch (e){
     if (els.assessResult) els.assessResult.textContent = `Could not assess line. (${e.message})`;
   }
 }
-
 /* ----------------- Tracking (PER PLAYER) ----------------- */
 
 async function trackCurrent(){
@@ -633,6 +668,22 @@ async function loadPlayer(athleteId, name){
 }
 
 /* ----------------- Wire UI ----------------- */
+
+document.getElementById("trackBtn")?.addEventListener("click", () => {
+  if (!currentAthleteId) return;
+  const stat = (els.manualStat?.value || "pts").toLowerCase();
+  const line = parseFloat(els.manualLine?.value) || null;
+  const proj = parseFloat(els.pPts?.textContent) || null;
+  const when = new Date().toISOString();
+
+  const rec = { athleteId: currentAthleteId, stat, line, proj, when };
+  // naive localStorage persistence
+  const key = `tracked_${currentAthleteId}_${stat}`;
+  const existing = JSON.parse(localStorage.getItem(key) || "[]");
+  existing.push(rec);
+  localStorage.setItem(key, JSON.stringify(existing));
+  alert("Tracked prediction locally. Later we can POST this to /api/nba/track for persistence.");
+});
 
 els.refreshBtn.addEventListener("click", load);
 els.refreshLabel.textContent = `${Math.round(REFRESH_MS/1000)}s`;

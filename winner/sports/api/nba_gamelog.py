@@ -1,10 +1,9 @@
 # winner/sports/api/nba_gamelog.py
 
 from __future__ import annotations
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict
 
 from .nba_client import http_get, safe_json_load, ESPN_WEB_GAMELOG, ESPN_SUMMARY
-from .nba_stats import get_current_season_year
 
 
 def _parse_int(x):
@@ -33,17 +32,6 @@ def _is_nba_team_id(team_id) -> bool:
         return False
 
 
-def _current_season_start_date() -> str:
-    """
-    Rough NBA season start heuristic:
-    ESPN season year is like 2026 for 2025-26 season -> start year = 2025.
-    We'll use Oct 1 of start year.
-    """
-    season_year = get_current_season_year()
-    start_year = season_year - 1
-    return f"{start_year}-10-01"
-
-
 def _find_stats_list_for_event(event_obj: dict, names_len: int) -> Optional[list]:
     if isinstance(event_obj.get("stats"), list) and len(event_obj["stats"]) == names_len:
         return event_obj["stats"]
@@ -63,6 +51,24 @@ def _find_stats_list_for_event(event_obj: dict, names_len: int) -> Optional[list
             for v in node:
                 stack.append(v)
     return None
+
+
+def _parse_made_attempt(s: str) -> Tuple[Optional[int], Optional[int]]:
+    """
+    ESPN boxscore often encodes shooting as strings like "9-18".
+    Returns (made, att).
+    """
+    if not isinstance(s, str):
+        return (None, None)
+    if "-" not in s:
+        return (None, None)
+    a, b = s.split("-", 1)
+    try:
+        made = int(a.strip())
+        att = int(b.strip())
+        return (made, att)
+    except Exception:
+        return (None, None)
 
 
 def _extract_player_line_from_summary(summary_data: dict, athlete_id: int) -> Optional[dict]:
@@ -114,11 +120,23 @@ def _extract_player_line_from_summary(summary_data: dict, athlete_id: int) -> Op
                 else:
                     min_v = _parse_float(min_raw)
 
+                fg_raw = get("FG")
+                tp_raw = get("3PT") or get("3P") or get("3PTFG")
+                ft_raw = get("FT")
+
+                fgm, fga = _parse_made_attempt(fg_raw) if isinstance(fg_raw, str) else (None, None)
+                tpm, tpa = _parse_made_attempt(tp_raw) if isinstance(tp_raw, str) else (None, None)
+                ftm, fta = _parse_made_attempt(ft_raw) if isinstance(ft_raw, str) else (None, None)
+
                 return {
                     "min": min_v,
                     "pts": _parse_int(get("PTS")),
                     "reb": _parse_int(get("REB")),
                     "ast": _parse_int(get("AST")),
+                    # shooting components
+                    "fgm": fgm, "fga": fga,
+                    "tpm": tpm, "tpa": tpa,
+                    "ftm": ftm, "fta": fta,
                 }
 
     return None
@@ -129,6 +147,40 @@ def _fill_stats_from_summary(game_id: str, athlete_id: int) -> Tuple[Optional[di
     data = safe_json_load(http_get(url))
     line = _extract_player_line_from_summary(data, athlete_id)
     return line, url
+
+
+def enrich_games_with_summary(games: List[dict], athlete_id: int) -> Tuple[List[dict], Dict]:
+    """
+    Ensures games have FG/3PT/FT components by pulling ESPN summary when needed.
+    Only enriches for games passed in (keep this list small: last 10/15).
+    """
+    debug = {"summaryEnriched": 0, "summaryUrlsUsed": []}
+    out = []
+
+    for g in games:
+        need = any(g.get(k) is None for k in ("fgm", "fga", "tpm", "tpa", "ftm", "fta"))
+        if not need:
+            out.append(g)
+            continue
+
+        game_id = str(g.get("gameId") or "")
+        if not game_id:
+            out.append(g)
+            continue
+
+        try:
+            line, used_url = _fill_stats_from_summary(game_id, athlete_id)
+            if line:
+                gg = {**g, **{k: line.get(k) for k in ("fgm","fga","tpm","tpa","ftm","fta")}}
+                debug["summaryEnriched"] += 1
+                debug["summaryUrlsUsed"].append(used_url)
+                out.append(gg)
+            else:
+                out.append(g)
+        except Exception:
+            out.append(g)
+
+    return out, debug
 
 
 def build_last_games(athlete_id: int, limit: int = 5) -> Tuple[List[dict], dict]:
@@ -171,7 +223,7 @@ def build_last_games(athlete_id: int, limit: int = 5) -> Tuple[List[dict], dict]
         opp = ev.get("opponent") or {}
         opp_team_id = opp.get("teamId") or opp.get("id")
 
-        # Filter: only real NBA opponents
+        # ✅ Filter: only real NBA opponents
         if not _is_nba_team_id(opp_team_id):
             debug["filteredOutNonNbaOpponent"] += 1
             continue
@@ -207,7 +259,7 @@ def build_last_games(athlete_id: int, limit: int = 5) -> Tuple[List[dict], dict]
             except Exception:
                 pass
 
-        # If still nothing (DNP / not in boxscore), skip
+        # If still nothing (DNP / not in boxscore), skip for last-5 purposes
         if (min_v is None and pts_v is None and reb_v is None and ast_v is None):
             debug["filteredOutNoStats"] += 1
             continue
@@ -223,6 +275,10 @@ def build_last_games(athlete_id: int, limit: int = 5) -> Tuple[List[dict], dict]
             "pts": pts_v,
             "reb": reb_v,
             "ast": ast_v,
+            # components (filled by enrichment in server when needed)
+            "fgm": None, "fga": None,
+            "tpm": None, "tpa": None,
+            "ftm": None, "fta": None,
         })
 
     games.sort(key=lambda g: g.get("date") or "", reverse=True)
@@ -234,24 +290,5 @@ def build_last_games(athlete_id: int, limit: int = 5) -> Tuple[List[dict], dict]
 def build_vs_opponent(athlete_id: int, opponent_team_id: int, limit: int = 25) -> Tuple[List[dict], dict]:
     all_games, dbg = build_last_games(athlete_id, limit=999)
     opp_str = str(opponent_team_id)
-
-    season_start = _current_season_start_date()
-
-    def is_this_season(g):
-        d = (g.get("date") or "")
-        # ESPN date looks like "2026-02-12T01:00:00.000+00:00"
-        # Compare the YYYY-MM-DD part.
-        d10 = d[:10]
-        return d10 >= season_start
-
-    vs = [g for g in all_games if (g.get("opponentTeamId") == opp_str and is_this_season(g))]
-    return (vs[:limit], {**dbg, "filteredOpponentTeamId": opp_str, "vsCount": len(vs), "seasonStart": season_start})
-
-
-def get_player_line_for_game(game_id: str, athlete_id: int) -> dict | None:
-    """
-    Used by tracking to fill actual results after a game.
-    Returns {"min": float|None, "pts": int|None, "reb": int|None, "ast": int|None}
-    """
-    line, _url = _fill_stats_from_summary(str(game_id), int(athlete_id))
-    return line
+    vs = [g for g in all_games if (g.get("opponentTeamId") == opp_str)]
+    return (vs[:limit], {**dbg, "filteredOpponentTeamId": opp_str, "vsCount": len(vs)})

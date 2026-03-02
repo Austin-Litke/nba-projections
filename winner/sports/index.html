@@ -82,6 +82,36 @@
           </div>
           <div class="muted small" id="projNote"></div>
 
+          <!-- Add these inside the modal (below projNote) -->
+          <div class="muted small" id="projNote"></div>
+
+          <!-- Simulation diagnostics & distribution -->
+          <div id="simDiagnostics" class="muted small" style="margin-top:8px;">
+            <div><b>Minutes:</b> <span id="diagMinutes">—</span> <span id="diagMinutesStability"></span></div>
+            <div><b>Opponent Adj:</b> <span id="diagOppAdj">—</span></div>
+            <div><b>Samples:</b> <span id="diagNSamples">—</span></div>
+          </div>
+
+          <div style="margin-top:8px;">
+            <div style="display:flex;gap:12px;align-items:center;">
+              <div><b>Distribution</b></div>
+              <div id="distPts" class="muted small">PTS: — (p10–p90)</div>
+              <div id="distReb" class="muted small">REB: —</div>
+              <div id="distAst" class="muted small">AST: —</div>
+            </div>
+          </div>
+
+          <!-- Fair line + alt lines -->
+          <div style="margin-top:8px;">
+            <div id="fairLine" class="muted small">Fair line: —</div>
+            <div id="altLines" class="muted small" style="margin-top:6px;">Alts: —</div>
+          </div>
+
+          <!-- Tracking button -->
+          <div style="margin-top:10px;">
+            <button id="trackBtn" style="padding:8px 10px;border-radius:8px;">Track this prediction</button>
+          </div>
+
           <!-- Manual line assessment -->
           <div class="lineRow">
             <label class="muted small">Manual Line:</label>

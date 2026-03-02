@@ -6,7 +6,6 @@ import math
 import os
 import sys
 import json
-import time
 import traceback
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -28,37 +27,25 @@ from sports.api.nba_stats import (
     get_current_season_year,
     extract_season_averages_from_web_stats,
     extract_season_avg_minutes_from_web_stats,
+    extract_season_shooting_from_web_stats,   # NEW
 )
 from sports.api.nba_gamelog import (
     build_last_games,
     build_vs_opponent,
-    get_player_line_for_game,   # NEW (tracking actuals)
+    enrich_games_with_summary,                # NEW
 )
 from sports.api.nba_projection import (
     build_projection,
 )
 
+from sports.api.nba_simulator import (
+    simulate_props,
+    prob_over,
+    fair_line,
+    alt_lines_probs,
+)
+
 PORT = 8000
-
-# ---------------- Tracking storage ----------------
-TRACK_FILE = os.path.join(os.path.dirname(__file__), "sports", "track_history.json")
-
-
-def _load_tracks() -> list[dict]:
-    try:
-        with open(TRACK_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, list) else []
-    except Exception:
-        return []
-
-
-def _save_tracks(rows: list[dict]) -> None:
-    os.makedirs(os.path.dirname(TRACK_FILE), exist_ok=True)
-    tmp = TRACK_FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(rows, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, TRACK_FILE)
 
 
 def _json_bytes(obj) -> bytes:
@@ -74,29 +61,12 @@ def _read_json_body(handler: SimpleHTTPRequestHandler) -> dict:
         return {}
 
 
-def _normal_cdf(x: float, mu: float, sigma: float) -> float:
-    # Normal CDF using erf (stdlib)
-    if sigma <= 1e-9:
-        return 0.5
-    z = (x - mu) / (sigma * math.sqrt(2.0))
-    return 0.5 * (1.0 + math.erf(z))
-
-
-def _sample_std(vals: list[float]) -> float | None:
-    if not vals or len(vals) < 2:
-        return None
-    m = sum(vals) / len(vals)
-    var = sum((v - m) ** 2 for v in vals) / (len(vals) - 1)
-    return math.sqrt(var)
-
-
 class Handler(SimpleHTTPRequestHandler):
     """
     Serves static files from the winner/ folder.
     Your sports UI lives at /sports/...
     """
 
-    # Optional: less noisy logs
     def log_message(self, fmt, *args):
         print(fmt % args)
 
@@ -112,7 +82,6 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
 
-        # ---------------- NBA API PROXY ROUTES ----------------
         try:
             if parsed.path == "/api/nba/scoreboard":
                 qs = parse_qs(parsed.query)
@@ -143,7 +112,6 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, data)
                 return
 
-            # Raw web stats passthrough (debugging)
             if parsed.path == "/api/nba/player_webstats_raw":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -156,7 +124,6 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, {"webStatsUrl": url, "data": data.get("data", data)})
                 return
 
-            # Raw gamelog passthrough (debugging)
             if parsed.path == "/api/nba/player_gamelog_raw":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -169,7 +136,6 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, {"gamelogUrl": url, "data": data.get("data", data)})
                 return
 
-            # Player: season averages
             if parsed.path == "/api/nba/player":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -179,12 +145,10 @@ class Handler(SimpleHTTPRequestHandler):
 
                 athlete_id_int = int(athlete_id)
 
-                # Name (core endpoint)
                 athlete_url = ESPN_CORE_ATHLETE.format(athleteId=athlete_id_int)
                 athlete = safe_json_load(http_get(athlete_url))
                 name = athlete.get("displayName") or athlete.get("fullName") or athlete.get("name") or "Player"
 
-                # Stats (web endpoint)
                 web_url = ESPN_WEB_STATS.format(athleteId=athlete_id_int)
                 web = safe_json_load(http_get(web_url))
 
@@ -200,12 +164,10 @@ class Handler(SimpleHTTPRequestHandler):
                         "athleteUrl": athlete_url,
                         "webStatsUrl": web_url,
                         "seasonYearUsed": season_year,
-                        "method": "web stats schema container names[] + statistics[]",
                     }
                 })
                 return
 
-            # Player gamelog (last N games)
             if parsed.path == "/api/nba/player_gamelog":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -224,7 +186,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, {"athleteId": int(athlete_id), "games": games, "debug": dbg})
                 return
 
-            # Player projection
+            # Monte Carlo projection (component PTS when available)
             if parsed.path == "/api/nba/player_projection":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -237,52 +199,71 @@ class Handler(SimpleHTTPRequestHandler):
                 athlete_id_int = int(athlete_id)
                 season_year = get_current_season_year()
 
-                # Pull web stats once
                 web_url = ESPN_WEB_STATS.format(athleteId=athlete_id_int)
                 web = safe_json_load(http_get(web_url))
 
                 season_avg = extract_season_averages_from_web_stats(web, preferred_year=season_year)
                 season_minutes = extract_season_avg_minutes_from_web_stats(web, preferred_year=season_year)
+                season_shoot = extract_season_shooting_from_web_stats(web, preferred_year=season_year)
 
-                last_games, _dbg = build_last_games(athlete_id_int, limit=5)
+                last_games_5, _dbg5 = build_last_games(athlete_id_int, limit=5)
+                last_games_10, dbg10 = build_last_games(athlete_id_int, limit=10)
+
+                # enrich last 10 with FG/3PT/FT from summary (needed for component points)
+                last_games_10, enrich_dbg = enrich_games_with_summary(last_games_10, athlete_id_int)
 
                 vs_games = []
-                if opp_id.isdigit():
-                    vs_games, _dbg2 = build_vs_opponent(athlete_id_int, int(opp_id), limit=25)
-
-                out = build_projection(season_avg, season_minutes, last_games, vs_games)
-                out["debug"] = {
-                    "webStatsUrl": web_url,
-                    "seasonYearUsed": season_year,
-                    "opponentTeamId": int(opp_id) if opp_id.isdigit() else None,
-                }
-                self.send_json(200, out)
-                return
-
-            # Player vs Opponent (this season only) - used for UI list + projection context
-            if parsed.path == "/api/nba/player_vs_opponent":
-                qs = parse_qs(parsed.query)
-                athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
-                opp_id = (qs.get("opponentTeamId", [""])[0] or "").strip()
-                limit = (qs.get("limit", ["10"])[0] or "10").strip()
-
-                if not athlete_id.isdigit() or not opp_id.isdigit():
-                    self.send_json(400, {"error": "athleteId and opponentTeamId required"})
-                    return
-
+                opp_id_int = None
                 try:
-                    limit_int = max(1, min(25, int(limit)))
+                    if opp_id and str(opp_id).strip().isdigit():
+                        opp_id_int = int(str(opp_id).strip())
                 except Exception:
-                    limit_int = 10
+                    opp_id_int = None
 
-                games, dbg = build_vs_opponent(int(athlete_id), int(opp_id), limit=limit_int)
-                self.send_json(200, {"athleteId": int(athlete_id), "opponentTeamId": int(opp_id), "games": games, "debug": dbg})
-                return
+                if opp_id_int is not None:
+                    vs_games, _dbgvs = build_vs_opponent(athlete_id_int, opp_id_int, limit=25)
 
-            # Tracking: list
-            if parsed.path == "/api/nba/track_list":
-                rows = _load_tracks()
-                self.send_json(200, {"rows": rows})
+                base = build_projection(season_avg, season_minutes, last_games_5, vs_games)
+                meta = base.get("meta") or {}
+                est_min = float(meta.get("estMinutes") or 32.0)
+                opp_adj = (meta.get("oppAdj") or {"pts": 1.0, "reb": 1.0, "ast": 1.0})
+
+                sim = simulate_props(
+                    season_avg=season_avg,
+                    season_minutes=season_minutes,
+                    last_games_10=last_games_10,
+                    opp_mult=opp_adj,
+                    est_minutes_point=est_min,
+                    season_shoot=season_shoot,
+                    n=10000,
+                )
+
+                out = {
+                    "projection": sim["projection"],
+                    "distribution": sim["distribution"],
+                    "meta": {
+                        "estMinutes": round(est_min, 1),
+                        "oppAdj": opp_adj,
+                        "confidence": meta.get("confidence") or "—",
+                        "minutesStability": sim["diagnostics"].get("minutesStability"),
+                        "minutesMu": sim["diagnostics"].get("minutesMu"),
+                        "minutesSd": sim["diagnostics"].get("minutesSd"),
+                        "nSamples": sim["diagnostics"].get("n"),
+                        "ptsEngine": (sim["diagnostics"].get("engine") or {}).get("pts"),
+                    },
+                    "debug": {
+                        "webStatsUrl": web_url,
+                        "seasonYearUsed": season_year,
+                        "opponentTeamId": opp_id_int,
+                        "baseProjection": base.get("projection"),
+                        "gamelogDebug": dbg10,
+                        "summaryEnrichDebug": enrich_dbg,
+                        "seasonShooting": season_shoot,
+                        "simDiagnostics": sim["diagnostics"],
+                    }
+                }
+
+                self.send_json(200, out)
                 return
 
         except Exception as e:
@@ -290,22 +271,19 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json(500, {"error": str(e)})
             return
 
-        # ---------------- STATIC FILES ----------------
         return super().do_GET()
 
     def do_POST(self):
         parsed = urlparse(self.path)
 
         try:
-            # Assess a manual line (probability of going OVER)
-            # Body: { athleteId, stat: "pts|reb|ast", line: number, opponentTeamId?: number }
             if parsed.path == "/api/nba/assess_line":
                 body = _read_json_body(self)
 
                 athlete_id = body.get("athleteId")
                 stat = (body.get("stat") or "pts").strip().lower()
                 line = body.get("line")
-                opp_id = body.get("opponentTeamId")  # optional
+                opp_id = body.get("opponentTeamId")
 
                 try:
                     athlete_id_int = int(athlete_id)
@@ -323,7 +301,6 @@ class Handler(SimpleHTTPRequestHandler):
                     self.send_json(400, {"error": "line must be a number"})
                     return
 
-                # 1) Build projection mean (μ) using same pipeline as /player_projection
                 season_year = get_current_season_year()
 
                 web_url = ESPN_WEB_STATS.format(athleteId=athlete_id_int)
@@ -331,8 +308,12 @@ class Handler(SimpleHTTPRequestHandler):
 
                 season_avg = extract_season_averages_from_web_stats(web, preferred_year=season_year)
                 season_minutes = extract_season_avg_minutes_from_web_stats(web, preferred_year=season_year)
+                season_shoot = extract_season_shooting_from_web_stats(web, preferred_year=season_year)
 
                 last_games_5, _dbg5 = build_last_games(athlete_id_int, limit=5)
+                last_games_10, dbg10 = build_last_games(athlete_id_int, limit=10)
+
+                last_games_10, enrich_dbg = enrich_games_with_summary(last_games_10, athlete_id_int)
 
                 vs_games = []
                 opp_id_int = None
@@ -345,135 +326,60 @@ class Handler(SimpleHTTPRequestHandler):
                 if opp_id_int is not None:
                     vs_games, _dbgvs = build_vs_opponent(athlete_id_int, opp_id_int, limit=25)
 
-                proj_out = build_projection(season_avg, season_minutes, last_games_5, vs_games)
-                mean = (proj_out.get("projection") or {}).get(stat)
+                base = build_projection(season_avg, season_minutes, last_games_5, vs_games)
+                meta = base.get("meta") or {}
+                est_min = float(meta.get("estMinutes") or 32.0)
+                opp_adj = (meta.get("oppAdj") or {"pts": 1.0, "reb": 1.0, "ast": 1.0})
 
-                # fallback to season avg if projection missing
-                if mean is None and isinstance(season_avg, dict):
-                    mean = season_avg.get(stat)
-                if mean is None:
-                    mean = 0.0
+                sim = simulate_props(
+                    season_avg=season_avg,
+                    season_minutes=season_minutes,
+                    last_games_10=last_games_10,
+                    opp_mult=opp_adj,
+                    est_minutes_point=est_min,
+                    season_shoot=season_shoot,
+                    n=10000,
+                )
 
-                mean = float(mean)
+                samples = sim["samples"].get(stat, [])
+                p_over = prob_over(samples, line_f)
+                p_under = 1.0 - p_over
+                fair = fair_line(samples)
+                alts = alt_lines_probs(samples, stat, center_line=line_f)
 
-                # 2) Estimate std dev (σ) from recent games (use up to last 10)
-                last_games_10, _dbg10 = build_last_games(athlete_id_int, limit=10)
-                vals = []
-                for g in last_games_10:
-                    v = g.get(stat)
-                    if isinstance(v, (int, float)):
-                        vals.append(float(v))
+                proj = sim["projection"].get(stat, 0.0)
+                dist = sim["distribution"].get(stat, {})
 
-                sigma = _sample_std(vals)
-
-                # If not enough sample variance, fallback by stat
-                if sigma is None or sigma <= 1e-9:
-                    sigma = 5.0 if stat == "pts" else (3.0 if stat == "reb" else 2.5)
-
-                # 3) Probability P(X > line)
-                continuity = 0.5
-                threshold = line_f + continuity
-
-                p_over = 1.0 - _normal_cdf(threshold, mean, float(sigma))
-                p_over = max(0.0, min(1.0, p_over))
-
-                note = f"μ={mean:.2f}, σ={float(sigma):.2f}, n={len(vals)} recent games."
                 self.send_json(200, {
                     "athleteId": athlete_id_int,
                     "stat": stat,
                     "line": line_f,
-                    "prob": p_over,
-                    "mean": mean,
-                    "std": float(sigma),
-                    "n": len(vals),
-                    "note": note,
+                    "probOver": round(p_over, 4),
+                    "probUnder": round(p_under, 4),
+                    "fairLine": fair,
+                    "projectionP50": proj,
+                    "band": dist,
+                    "altLines": alts,
                     "meta": {
                         "opponentTeamId": opp_id_int,
                         "seasonYearUsed": season_year,
                         "webStatsUrl": web_url,
+                        "nSamples": sim["diagnostics"].get("n"),
+                        "minutesMu": sim["diagnostics"].get("minutesMu"),
+                        "minutesSd": sim["diagnostics"].get("minutesSd"),
+                        "minutesStability": sim["diagnostics"].get("minutesStability"),
+                        "oppAdj": opp_adj,
+                        "confidence": meta.get("confidence") or "—",
+                        "ptsEngine": (sim["diagnostics"].get("engine") or {}).get("pts"),
+                    },
+                    "debug": {
+                        "baseProjection": base.get("projection"),
+                        "gamelogDebug": dbg10,
+                        "summaryEnrichDebug": enrich_dbg,
+                        "seasonShooting": season_shoot,
+                        "simDiagnostics": sim["diagnostics"],
                     }
                 })
-                return
-
-            # Tracking: add a row
-            # Body: { athleteId, stat, line, prob, mean, std, opponentTeamId?, gameId?, playerName? }
-            if parsed.path == "/api/nba/track_add":
-                body = _read_json_body(self)
-
-                try:
-                    athlete_id = int(body.get("athleteId"))
-                except Exception:
-                    self.send_json(400, {"error": "athleteId required"})
-                    return
-
-                stat = (body.get("stat") or "pts").strip().lower()
-                if stat not in ("pts", "reb", "ast"):
-                    self.send_json(400, {"error": "stat must be pts|reb|ast"})
-                    return
-
-                try:
-                    line = float(body.get("line"))
-                    prob = float(body.get("prob"))
-                    mean = float(body.get("mean"))
-                    std = float(body.get("std"))
-                except Exception:
-                    self.send_json(400, {"error": "line/prob/mean/std required (numbers)"})
-                    return
-
-                opponent_team_id = body.get("opponentTeamId")
-                game_id = body.get("gameId")
-                player_name = body.get("playerName") or ""
-
-                row = {
-                    "id": int(time.time() * 1000),
-                    "ts": int(time.time()),
-                    "athleteId": athlete_id,
-                    "playerName": player_name,
-                    "stat": stat,
-                    "line": line,
-                    "prob": prob,
-                    "mean": mean,
-                    "std": std,
-                    "opponentTeamId": int(opponent_team_id) if str(opponent_team_id).isdigit() else None,
-                    "gameId": str(game_id) if game_id else None,
-                    "actual": None,
-                }
-
-                rows = _load_tracks()
-                rows.insert(0, row)
-                _save_tracks(rows)
-
-                self.send_json(200, {"ok": True, "row": row})
-                return
-
-            # Tracking: refresh actuals (fills actual for completed games that have gameId)
-            if parsed.path == "/api/nba/track_refresh":
-                rows = _load_tracks()
-                updated = 0
-
-                for r in rows:
-                    if r.get("actual") is not None:
-                        continue
-
-                    game_id = r.get("gameId")
-                    athlete_id = r.get("athleteId")
-                    stat = r.get("stat")
-
-                    if not game_id or not athlete_id or stat not in ("pts", "reb", "ast"):
-                        continue
-
-                    try:
-                        line = get_player_line_for_game(str(game_id), int(athlete_id))
-                        if line and line.get(stat) is not None:
-                            r["actual"] = float(line.get(stat))
-                            updated += 1
-                    except Exception:
-                        pass
-
-                if updated:
-                    _save_tracks(rows)
-
-                self.send_json(200, {"ok": True, "updated": updated})
                 return
 
         except Exception as e:
@@ -481,7 +387,6 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json(500, {"error": str(e)})
             return
 
-        # If unknown POST route
         self.send_json(404, {"error": "Not found"})
 
 
@@ -497,11 +402,7 @@ def run():
     print("  /api/nba/player?athleteId=1966")
     print("  /api/nba/player_gamelog?athleteId=1966&limit=5")
     print("  /api/nba/player_projection?athleteId=1966&opponentTeamId=6")
-    print("  /api/nba/player_vs_opponent?athleteId=1966&opponentTeamId=6&limit=10")
-    print("  POST /api/nba/assess_line  {athleteId, stat, line, opponentTeamId?}")
-    print("  GET  /api/nba/track_list")
-    print("  POST /api/nba/track_add")
-    print("  POST /api/nba/track_refresh")
+    print('  POST /api/nba/assess_line  {"athleteId":1966,"stat":"pts","line":25.5,"opponentTeamId":6}')
 
     httpd = HTTPServer(("0.0.0.0", PORT), Handler)
     httpd.serve_forever()

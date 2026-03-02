@@ -669,20 +669,58 @@ async function loadPlayer(athleteId, name){
 
 /* ----------------- Wire UI ----------------- */
 
-document.getElementById("trackBtn")?.addEventListener("click", () => {
+document.getElementById("trackBtn")?.addEventListener("click", async () => {
   if (!currentAthleteId) return;
-  const stat = (els.manualStat?.value || "pts").toLowerCase();
-  const line = parseFloat(els.manualLine?.value) || null;
-  const proj = parseFloat(els.pPts?.textContent) || null;
-  const when = new Date().toISOString();
 
-  const rec = { athleteId: currentAthleteId, stat, line, proj, when };
-  // naive localStorage persistence
-  const key = `tracked_${currentAthleteId}_${stat}`;
-  const existing = JSON.parse(localStorage.getItem(key) || "[]");
-  existing.push(rec);
-  localStorage.setItem(key, JSON.stringify(existing));
-  alert("Tracked prediction locally. Later we can POST this to /api/nba/track for persistence.");
+  const stat = (els.manualStat?.value || "pts").toLowerCase();
+  const line = parseFloat(els.manualLine?.value);
+
+  if (!Number.isFinite(line)){
+    alert("Enter a line first (ex: 25.5) then click Track.");
+    return;
+  }
+
+  // Use the most recent assess output in the UI by calling assess_line again
+  try{
+    const res = await fetch(`/api/nba/assess_line`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ athleteId: currentAthleteId, stat, line })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const payload = {
+      athleteId: currentAthleteId,
+      stat,
+      line,
+      probOver: data.probOver,
+      fairLine: data.fairLine,
+      projectionP50: data.projectionP50,
+      opponentTeamId: data.meta?.opponentTeamId ?? null,
+      // optional: later we can pass gameId automatically by selecting the matchup
+      gameId: null,
+      gameDate: null,
+      meta: {
+        minutesMu: data.meta?.minutesMu,
+        minutesSd: data.meta?.minutesSd,
+        minutesStability: data.meta?.minutesStability,
+        ptsEngine: data.meta?.ptsEngine,
+      }
+    };
+
+    const saveRes = await fetch(`/api/nba/track`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!saveRes.ok) throw new Error(`HTTP ${saveRes.status}`);
+    const saved = await saveRes.json();
+
+    alert(`Tracked! Saved id=${saved.saved?.id}`);
+  } catch (e){
+    alert(`Track failed: ${e.message}`);
+  }
 });
 
 els.refreshBtn.addEventListener("click", load);

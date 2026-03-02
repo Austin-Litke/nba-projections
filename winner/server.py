@@ -1,5 +1,7 @@
 # winner/server.py
 
+
+
 from __future__ import annotations
 
 import math
@@ -12,6 +14,13 @@ from urllib.parse import urlparse, parse_qs
 
 # Ensure "winner/" is on import path so "sports.api.*" works reliably
 sys.path.insert(0, os.path.dirname(__file__))
+
+from sports.api.nba_tracker import (
+    add_prediction,
+    list_predictions,
+    settle_prediction,
+    metrics as tracker_metrics,
+)
 
 from sports.api.nba_client import (
     http_get,
@@ -184,6 +193,26 @@ class Handler(SimpleHTTPRequestHandler):
 
                 games, dbg = build_last_games(int(athlete_id), limit=limit_int)
                 self.send_json(200, {"athleteId": int(athlete_id), "games": games, "debug": dbg})
+                return
+            
+            
+                        # List tracked predictions (optionally filter by athleteId)
+            if parsed.path == "/api/nba/tracked":
+                qs = parse_qs(parsed.query)
+                aid = (qs.get("athleteId", [""])[0] or "").strip()
+                athlete_id = int(aid) if aid.isdigit() else None
+                preds = list_predictions(athlete_id)
+                self.send_json(200, {"athleteId": athlete_id, "predictions": preds})
+                return
+
+            # Metrics (Brier/logloss/calibration bins)
+            if parsed.path == "/api/nba/tracked_metrics":
+                qs = parse_qs(parsed.query)
+                aid = (qs.get("athleteId", [""])[0] or "").strip()
+                athlete_id = int(aid) if aid.isdigit() else None
+                preds = list_predictions(athlete_id)
+                m = tracker_metrics(preds)
+                self.send_json(200, {"athleteId": athlete_id, "metrics": m})
                 return
 
             # Monte Carlo projection (component PTS when available)
@@ -380,6 +409,31 @@ class Handler(SimpleHTTPRequestHandler):
                         "simDiagnostics": sim["diagnostics"],
                     }
                 })
+                return
+            
+            
+                        # Track a prediction result (store it)
+            # Body:
+            # { athleteId, stat, line, probOver, fairLine, projectionP50, opponentTeamId?, gameId?, gameDate?, meta? }
+            if parsed.path == "/api/nba/track":
+                body = _read_json_body(self)
+                rec = add_prediction(body)
+                self.send_json(200, {"saved": rec})
+                return
+
+            # Settle a prediction by id (pull actual from ESPN summary)
+            # Body: { id }
+            if parsed.path == "/api/nba/settle":
+                body = _read_json_body(self)
+                pid = body.get("id")
+                try:
+                    pid = int(pid)
+                except Exception:
+                    self.send_json(400, {"error": "id must be an integer"})
+                    return
+
+                rec = settle_prediction(pid)
+                self.send_json(200, {"settled": rec})
                 return
 
         except Exception as e:

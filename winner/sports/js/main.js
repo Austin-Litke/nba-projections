@@ -23,7 +23,7 @@ const els = {
   // last 5
   last5: document.getElementById("playerLast5"),
 
-  // vs opponent this season
+  // vs opp
   vsOpp: document.getElementById("playerVsOpp"),
 
   // projection
@@ -38,21 +38,20 @@ const els = {
   assessBtn: document.getElementById("assessBtn"),
   assessResult: document.getElementById("assessResult"),
 
-  // tracking
+  // tracking ui
+  trackGameId: document.getElementById("trackGameId"),
   trackBtn: document.getElementById("trackBtn"),
+  refreshTrackBtn: document.getElementById("refreshTrackBtn"),
+  trackRows: document.getElementById("trackRows"),
+  trackMeta: document.getElementById("trackMeta"),
   trackChart: document.getElementById("trackChart"),
-  trackTable: document.getElementById("trackTable"),
 };
 
 const REFRESH_MS = 15000;
 const MAX_LOOKAHEAD_DAYS = 14;
 
 let currentAthleteId = null;
-let currentOpponentTeamId = null;
-let currentGameId = null;
-
-// Stores the last assess response so Track can save it
-let lastAssessment = null;
+let currentOpponentTeamId = null; // we can set this when you add opponent selection later
 
 function escapeHtml(s){
   return String(s)
@@ -110,9 +109,6 @@ function gameCard(g){
   const awayId = awayTeam.id;
   const homeId = homeTeam.id;
 
-  // game id for tracking (scoreboard usually has g.id)
-  const gameId = g.id || comp?.id || g.uid || null;
-
   const startIso = comp?.date || g.date;
   const timeLabel = startIso ? fmtLocalTime(startIso) : "—";
   const note = comp?.venue?.fullName ? comp.venue.fullName : (g.name || "");
@@ -143,11 +139,7 @@ function gameCard(g){
       const teamId = btn.dataset.teamid;
       const teamName = btn.dataset.teamname || "Team";
       if (!teamId) return;
-
-      // opponent is the other team in this game
-      const oppId = (String(teamId) === String(awayId)) ? homeId : awayId;
-
-      await loadRoster(teamId, teamName, oppId, gameId);
+      await loadRoster(teamId, teamName);
     });
   });
 
@@ -208,10 +200,7 @@ async function load(){
   }
 }
 
-async function loadRoster(teamId, teamName, opponentTeamId = null, gameId = null){
-  currentOpponentTeamId = opponentTeamId;
-  currentGameId = gameId;
-
+async function loadRoster(teamId, teamName){
   openSide(true);
   els.sideTitle.textContent = `${teamName} — Roster`;
   els.sideMeta.textContent = "Loading roster…";
@@ -271,15 +260,15 @@ async function loadRoster(teamId, teamName, opponentTeamId = null, gameId = null
 
 /* ----------------- Last 5 games ----------------- */
 
-function renderLast5(games){
-  if (!els.last5) return;
+function renderGameList(targetEl, games){
+  if (!targetEl) return;
 
   if (!Array.isArray(games) || games.length === 0){
-    els.last5.innerHTML = `<div class="muted">No recent games found.</div>`;
+    targetEl.innerHTML = `<div class="muted">No games found.</div>`;
     return;
   }
 
-  els.last5.innerHTML = games.map(g => {
+  targetEl.innerHTML = games.map(g => {
     const date = g.date ?? "—";
     const opp = g.opponent ?? "—";
     const result = g.result ?? "";
@@ -307,7 +296,7 @@ async function loadLast5(athleteId){
     const res = await fetch(`/api/nba/player_gamelog?athleteId=${athleteId}&limit=5`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    renderLast5(data.games || []);
+    renderGameList(els.last5, data.games || []);
   } catch (e){
     els.last5.innerHTML = `<div class="muted">Could not load last 5 games. (${escapeHtml(e.message)})</div>`;
   }
@@ -315,50 +304,19 @@ async function loadLast5(athleteId){
 
 /* ----------------- Vs Opponent (This Season) ----------------- */
 
-function renderVsOpp(games){
+async function loadVsOpponent(athleteId, opponentTeamId){
   if (!els.vsOpp) return;
-
-  if (!Array.isArray(games) || games.length === 0){
-    els.vsOpp.innerHTML = `<div class="muted">No games vs opponent this season.</div>`;
+  if (!opponentTeamId){
+    els.vsOpp.innerHTML = `<div class="muted">Pick an opponent to show this.</div>`;
     return;
   }
-
-  els.vsOpp.innerHTML = games.map(g => {
-    const date = g.date ?? "—";
-    const opp = g.opponent ?? "—";
-    const result = g.result ?? "";
-    const score = g.score ? ` (${escapeHtml(g.score)})` : "";
-
-    const min = (g.min ?? "—");
-    const pts = (g.pts ?? "—");
-    const reb = (g.reb ?? "—");
-    const ast = (g.ast ?? "—");
-
-    return `
-      <div class="last5-row">
-        <div class="left">${escapeHtml(date)} vs ${escapeHtml(opp)} ${escapeHtml(result)}${score}</div>
-        <div class="right">${min} MIN • ${pts} PTS • ${reb} REB • ${ast} AST</div>
-      </div>
-    `;
-  }).join("");
-}
-
-async function loadVsOpponent(athleteId){
-  if (!els.vsOpp) return;
 
   els.vsOpp.innerHTML = `<div class="muted">Loading vs opponent…</div>`;
-
-  if (!currentOpponentTeamId){
-    els.vsOpp.innerHTML = `<div class="muted">No opponent selected. Click a game team first.</div>`;
-    return;
-  }
-
   try{
-    const url = `/api/nba/player_vs_opponent?athleteId=${athleteId}&opponentTeamId=${currentOpponentTeamId}&limit=10`;
-    const res = await fetch(url);
+    const res = await fetch(`/api/nba/player_vs_opponent?athleteId=${athleteId}&opponentTeamId=${opponentTeamId}&limit=25`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    renderVsOpp(data.games || []);
+    renderGameList(els.vsOpp, data.games || []);
   } catch (e){
     els.vsOpp.innerHTML = `<div class="muted">Could not load vs opponent. (${escapeHtml(e.message)})</div>`;
   }
@@ -367,63 +325,31 @@ async function loadVsOpponent(athleteId){
 /* ----------------- Projection ----------------- */
 
 async function loadProjection(athleteId){
-  // keep existing quick UI resets
   if (els.pPts) els.pPts.textContent = "—";
   if (els.pReb) els.pReb.textContent = "—";
   if (els.pAst) els.pAst.textContent = "—";
   if (els.projNote) els.projNote.textContent = "Loading projection…";
 
-  // clear diagnostics
-  const setDiag = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  setDiag("diagMinutes", "—");
-  setDiag("diagMinutesStability", "");
-  setDiag("diagOppAdj", "—");
-  setDiag("diagNSamples", "—");
-  setDiag("distPts", "PTS: —");
-  setDiag("distReb", "REB: —");
-  setDiag("distAst", "AST: —");
-  setDiag("fairLine", "Fair line: —");
-  setDiag("altLines", "Alts: —");
-
   try{
-    const res = await fetch(`/api/nba/player_projection?athleteId=${athleteId}`);
+    // if you later set currentOpponentTeamId, you can append it here
+    const url = currentOpponentTeamId
+      ? `/api/nba/player_projection?athleteId=${athleteId}&opponentTeamId=${currentOpponentTeamId}`
+      : `/api/nba/player_projection?athleteId=${athleteId}`;
+
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-
     const p = data.projection || {};
-    const dist = data.distribution || {};
     const meta = data.meta || {};
 
-    // Show median projection in modal stats
     if (els.pPts) els.pPts.textContent = (typeof p.pts === "number") ? p.pts.toFixed(1) : "—";
     if (els.pReb) els.pReb.textContent = (typeof p.reb === "number") ? p.reb.toFixed(1) : "—";
     if (els.pAst) els.pAst.textContent = (typeof p.ast === "number") ? p.ast.toFixed(1) : "—";
 
-    // proj note -> minutes + confidence
-    const mins = (typeof meta.estMinutes === "number") ? (meta.estMinutes.toFixed(1) + " min") : (meta.minutesMu ? `${meta.minutesMu} min` : "—");
+    const mins = (typeof meta.estMinutes === "number") ? meta.estMinutes.toFixed(1) : "—";
     const conf = meta.confidence || "—";
-    if (els.projNote) els.projNote.textContent = `Projection (est ${mins}) • confidence: ${conf}`;
-
-    // diagnostics
-    setDiag("diagMinutes", `${meta.minutesMu ?? "—"} ± ${meta.minutesSd ?? "—"}`);
-    setDiag("diagMinutesStability", `(${meta.minutesStability ?? "—"})`);
-    setDiag("diagOppAdj", (meta.oppAdj && meta.oppAdj.pts) ? `pts:${meta.oppAdj.pts}` : "—");
-    setDiag("diagNSamples", meta.nSamples ? `${meta.nSamples} runs` : "—");
-
-    // distribution text
-    const showDist = (stat, elId) => {
-      const d = dist[stat] || {};
-      if (d && d.p10 != null){
-        const txt = `${stat.toUpperCase()}: p10 ${d.p10} — p25 ${d.p25} — p50 ${d.p50} — p75 ${d.p75} — p90 ${d.p90} (mean ${d.mean})`;
-        setDiag(elId, txt);
-      } else {
-        setDiag(elId, `${stat.toUpperCase()}: —`);
-      }
-    };
-    showDist("pts", "distPts");
-    showDist("reb", "distReb");
-    showDist("ast", "distAst");
-
+    const engine = meta.ptsEngine ? ` • pts engine: ${meta.ptsEngine}` : "";
+    if (els.projNote) els.projNote.textContent = `Projection (est ${mins} min) • confidence: ${conf}${engine}`;
   } catch (e){
     if (els.projNote) els.projNote.textContent = `Could not load projection. (${e.message})`;
   }
@@ -446,174 +372,263 @@ async function assessManualLine(){
   if (els.assessResult) els.assessResult.textContent = "Calculating…";
 
   try{
+    const payload = { athleteId: currentAthleteId, stat, line };
+    if (currentOpponentTeamId) payload.opponentTeamId = currentOpponentTeamId;
+
     const res = await fetch(`/api/nba/assess_line`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ athleteId: currentAthleteId, stat, line })
+      body: JSON.stringify(payload)
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    const prob = data.probOver ?? data.prob ?? data.probability ?? null;
-    const mean = (data.projectionP50 != null) ? data.projectionP50 : (data.mean ?? null);
-    const std = (data.band && data.band.mean) ? data.band.mean : null;
-
+    const prob = (typeof data.probOver === "number") ? data.probOver : null;
     const pct = (prob == null) ? "—" : `${Math.round(prob * 100)}%`;
-    const meanTxt = (mean == null) ? "—" : mean.toFixed(1);
+
+    const p50 = (typeof data.projectionP50 === "number") ? data.projectionP50.toFixed(1) : "—";
+    const band = data.band ? `p10 ${data.band.p10} • p50 ${data.band.p50} • p90 ${data.band.p90}` : "";
 
     if (els.assessResult){
       els.assessResult.innerHTML =
         `<b>${pct}</b> chance to go OVER ${line.toFixed(1)} ${stat.toUpperCase()}<br/>
-         Model median=${meanTxt}${data.band ? `<br/>Band(p10-p90): ${data.band.p10} - ${data.band.p90}` : ""}`;
+         median=${p50}${band ? `<br/>${escapeHtml(band)}` : ""}<br/>
+         fair line=${data.fairLine ?? "—"} • samples=${data.meta?.nSamples ?? "—"}`;
     }
-
-    // show fair line + alt lines + diagnostics
-    const setDiag = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    setDiag("fairLine", `Fair line: ${data.fairLine ?? "—"}`);
-    if (data.altLines && data.altLines.length){
-      const parts = data.altLines.slice(0,7).map(a => `${a.line}: ${Math.round(a.pOver*100)}%`);
-      setDiag("altLines", `Alts: ${parts.join(" • ")}`);
-    } else {
-      setDiag("altLines", "Alts: —");
-    }
-
-    // minutes diag if present
-    if (data.meta){
-      setDiag("diagMinutes", `${data.meta.minutesMu ?? "—"} ± ${data.meta.minutesSd ?? "—"}`);
-      setDiag("diagMinutesStability", `(${data.meta.minutesStability ?? "—"})`);
-      setDiag("diagOppAdj", data.meta.oppAdj ? `pts:${data.meta.oppAdj.pts}` : "—");
-      setDiag("diagNSamples", data.meta.nSamples ? `${data.meta.nSamples} runs` : "—");
-    }
-
   } catch (e){
     if (els.assessResult) els.assessResult.textContent = `Could not assess line. (${e.message})`;
   }
 }
-/* ----------------- Tracking (PER PLAYER) ----------------- */
 
-async function trackCurrent(){
-  if (!lastAssessment){
-    alert("Run Assess first, then press Track.");
-    return;
+/* ----------------- Tracking ----------------- */
+
+function _fmtDateShort(iso){
+  try{
+    const d = new Date(iso);
+    return d.toLocaleDateString();
+  } catch {
+    return "—";
   }
-
-  const res = await fetch("/api/nba/track_add", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(lastAssessment)
-  });
-
-  if (!res.ok){
-    alert("Could not save track row.");
-    return;
-  }
-
-  await refreshTrackingHistory(currentAthleteId);
 }
 
-async function refreshTrackingHistory(athleteId){
-  if (!athleteId) return;
-
-  // Refresh actuals on server (fills completed games)
-  await fetch("/api/nba/track_refresh", {
-    method:"POST",
-    headers: {"Content-Type":"application/json"},
-    body:"{}"
-  });
-
-  // Pull list
-  const res = await fetch("/api/nba/track_list");
-  const data = await res.json();
-  const rows = data.rows || [];
-
-  // Filter to this player only
-  const mine = rows.filter(r => String(r.athleteId) === String(athleteId));
-
-  renderTrackTable(mine);
-  renderTrackChart(mine);
-}
-
-function renderTrackTable(rows){
-  if (!els.trackTable) return;
-
-  if (!rows.length){
-    els.trackTable.innerHTML = `<div class="muted">No tracked picks for this player yet. Run Assess then Track.</div>`;
-    return;
-  }
-
-  const show = rows.slice(0, 15);
-  els.trackTable.innerHTML = show.map(r => {
-    const date = new Date((r.ts||0)*1000).toLocaleString();
-    const actual = (r.actual == null) ? "—" : Number(r.actual).toFixed(1);
-    return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)">
-      <b>${escapeHtml((r.playerName || "").trim() || "Player")}</b> • <b>${r.stat.toUpperCase()}</b> line ${r.line}
-      • P(Over) ${Math.round(r.prob*100)}%
-      • μ ${Number(r.mean).toFixed(1)}
-      • actual ${actual}
-      <div class="muted small">${escapeHtml(date)} • gameId ${escapeHtml(r.gameId || "—")}</div>
-    </div>`;
-  }).join("");
-}
-
-function renderTrackChart(rows){
+function drawTrackingChart(rows){
   const c = els.trackChart;
   if (!c) return;
   const ctx = c.getContext("2d");
-  ctx.clearRect(0,0,c.width,c.height);
+  if (!ctx) return;
 
-  if (!rows.length){
-    ctx.fillStyle = "rgba(255,255,255,.75)";
-    ctx.fillText("No tracked picks for this player yet.", 10, 30);
+  // clear
+  ctx.clearRect(0, 0, c.width, c.height);
+
+  const data = rows
+    .filter(r => typeof r.projectionP50 === "number")
+    .slice(-10); // last 10
+
+  if (!data.length){
+    ctx.fillText("No tracked data yet.", 10, 20);
     return;
   }
 
-  const completed = rows.filter(r => r.actual != null).slice(0, 20).reverse();
-  if (!completed.length){
-    ctx.fillStyle = "rgba(255,255,255,.75)";
-    ctx.fillText("Tracked picks exist, but no completed games yet (actual fills after games end).", 10, 30);
-    return;
+  const pad = 18;
+  const W = c.width, H = c.height;
+  const chartW = W - pad * 2;
+  const chartH = H - pad * 2;
+
+  // range based on proj & actual if exists
+  let maxV = 0;
+  for (const r of data){
+    maxV = Math.max(maxV, r.projectionP50 || 0, (r.actual ?? 0));
   }
-
-  const pad = 20;
-  const W = c.width - pad*2;
-  const H = c.height - pad*2;
-
-  const ys = completed.flatMap(r => [Number(r.mean), Number(r.actual)]);
-  const yMin = Math.min(...ys) - 2;
-  const yMax = Math.max(...ys) + 2;
-
-  function x(i){ return pad + (completed.length === 1 ? 0 : (i/(completed.length-1))*W); }
-  function y(v){ return pad + (1 - (v - yMin)/(yMax - yMin))*H; }
+  maxV = Math.max(5, maxV);
 
   // axes
-  ctx.strokeStyle = "rgba(255,255,255,.18)";
+  ctx.globalAlpha = 0.9;
   ctx.beginPath();
   ctx.moveTo(pad, pad);
-  ctx.lineTo(pad, pad+H);
-  ctx.lineTo(pad+W, pad+H);
+  ctx.lineTo(pad, H - pad);
+  ctx.lineTo(W - pad, H - pad);
   ctx.stroke();
 
-  // mean line (blue-ish)
-  ctx.strokeStyle = "rgba(120,200,255,.75)";
+  // plot points
+  const step = chartW / Math.max(1, data.length - 1);
+
+  // projection line
   ctx.beginPath();
-  completed.forEach((r,i)=>{
-    const xx = x(i), yy = y(Number(r.mean));
-    if (i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+  data.forEach((r, i) => {
+    const x = pad + i * step;
+    const y = (H - pad) - (chartH * (r.projectionP50 / maxV));
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
   ctx.stroke();
 
-  // actual line (orange-ish)
-  ctx.strokeStyle = "rgba(255,180,120,.75)";
-  ctx.beginPath();
-  completed.forEach((r,i)=>{
-    const xx = x(i), yy = y(Number(r.actual));
-    if (i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+  // actual dots (if settled)
+  data.forEach((r, i) => {
+    if (r.actual == null) return;
+    const x = pad + i * step;
+    const y = (H - pad) - (chartH * (r.actual / maxV));
+    ctx.beginPath();
+    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+    ctx.fill();
   });
-  ctx.stroke();
 
-  ctx.fillStyle = "rgba(255,255,255,.75)";
-  ctx.fillText("Blue = projection (μ), Orange = actual", 10, c.height - 8);
+  ctx.globalAlpha = 1.0;
+  ctx.fillText("Line: projection (line) • actual (dots)", pad, 14);
+}
+
+function renderTrackingTable(preds){
+  if (!els.trackRows) return;
+
+  if (!Array.isArray(preds) || preds.length === 0){
+    els.trackRows.innerHTML = `<tr><td colspan="8" class="muted">No tracked rows yet.</td></tr>`;
+    drawTrackingChart([]);
+    return;
+  }
+
+  // newest first
+  const rows = [...preds].sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+
+  els.trackRows.innerHTML = rows.map(r => {
+    const date = _fmtDateShort(r.createdAt);
+    const stat = (r.stat || "").toUpperCase();
+    const line = (typeof r.line === "number") ? r.line.toFixed(1) : "—";
+    const p = (typeof r.probOver === "number") ? `${Math.round(r.probOver * 100)}%` : "—";
+    const proj = (typeof r.projectionP50 === "number") ? r.projectionP50.toFixed(1) : "—";
+    const actual = (r.actual == null) ? "—" : Number(r.actual).toFixed(0);
+
+    let res = "—";
+    let pillCls = "";
+    if (r.result === "over"){ res = "OVER"; pillCls = "over"; }
+    if (r.result === "under"){ res = "UNDER"; pillCls = "under"; }
+
+    const canSettle = !r.settledAt && r.gameId;
+
+    return `
+      <tr>
+        <td>${escapeHtml(date)}</td>
+        <td>${escapeHtml(stat)}</td>
+        <td>${escapeHtml(line)}</td>
+        <td>${escapeHtml(p)}</td>
+        <td>${escapeHtml(proj)}</td>
+        <td>${escapeHtml(actual)}</td>
+        <td>${res === "—" ? "—" : `<span class="trackPill ${pillCls}">${res}</span>`}</td>
+        <td>
+          ${canSettle
+            ? `<button class="trackBtnSmall" data-settle="${r.id}">Settle</button>`
+            : (r.gameId ? `<span class="muted small">done</span>` : `<span class="muted small">needs gameId</span>`)
+          }
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  // wire settle buttons
+  els.trackRows.querySelectorAll("[data-settle]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = parseInt(btn.getAttribute("data-settle"), 10);
+      if (!Number.isFinite(id)) return;
+
+      btn.textContent = "…";
+      try{
+        const res = await fetch(`/api/nba/settle`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        await loadTracking(currentAthleteId);
+      } catch (e){
+        alert(`Settle failed: ${e.message}`);
+      } finally {
+        btn.textContent = "Settle";
+      }
+    });
+  });
+
+  drawTrackingChart(rows);
+}
+
+async function loadTracking(athleteId){
+  if (!athleteId) return;
+  if (els.trackMeta) els.trackMeta.textContent = "Loading tracked predictions…";
+
+  try{
+    const res = await fetch(`/api/nba/tracked?athleteId=${athleteId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const preds = data.predictions || [];
+    renderTrackingTable(preds);
+
+    // simple summary in meta
+    const settled = preds.filter(p => p.settledAt && p.actual != null);
+    const over = settled.filter(p => p.result === "over").length;
+    const under = settled.filter(p => p.result === "under").length;
+
+    if (els.trackMeta){
+      els.trackMeta.textContent = `${preds.length} tracked • settled: ${settled.length} (OVER ${over} / UNDER ${under})`;
+    }
+  } catch (e){
+    if (els.trackMeta) els.trackMeta.textContent = `Could not load tracking. (${e.message})`;
+  }
+}
+
+async function trackCurrent(){
+  if (!currentAthleteId) return;
+
+  const stat = (els.manualStat?.value || "pts").toLowerCase();
+  const line = parseFloat(els.manualLine?.value);
+
+  if (!Number.isFinite(line)){
+    alert("Enter a line first (ex: 25.5), then Track.");
+    return;
+  }
+
+  // optional gameId helps settling
+  const gameId = (els.trackGameId?.value || "").trim() || null;
+
+  try{
+    // get latest assess results (prob, fair line, p50)
+    const assessRes = await fetch(`/api/nba/assess_line`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ athleteId: currentAthleteId, stat, line, opponentTeamId: currentOpponentTeamId ?? undefined })
+    });
+    const assess = await assessRes.json();
+    if (!assessRes.ok) throw new Error(assess.error || `HTTP ${assessRes.status}`);
+
+    const payload = {
+      athleteId: currentAthleteId,
+      stat,
+      line,
+      probOver: assess.probOver,
+      fairLine: assess.fairLine,
+      projectionP50: assess.projectionP50,
+      opponentTeamId: assess.meta?.opponentTeamId ?? null,
+      gameId,
+      gameDate: null,
+      meta: {
+        minutesMu: assess.meta?.minutesMu,
+        minutesSd: assess.meta?.minutesSd,
+        minutesStability: assess.meta?.minutesStability,
+        ptsEngine: assess.meta?.ptsEngine,
+        nSamples: assess.meta?.nSamples,
+      }
+    };
+
+    const saveRes = await fetch(`/api/nba/track`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const saved = await saveRes.json();
+    if (!saveRes.ok) throw new Error(saved.error || `HTTP ${saveRes.status}`);
+
+    await loadTracking(currentAthleteId);
+  } catch (e){
+    alert(`Track failed: ${e.message}`);
+  }
 }
 
 /* ----------------- Player modal ----------------- */
@@ -631,15 +646,17 @@ async function loadPlayer(athleteId, name){
   els.playerNote.textContent = "";
 
   if (els.assessResult) els.assessResult.textContent = "Enter a line and press Assess.";
-  lastAssessment = null;
 
-  // Load player-specific tracking history right away
-  refreshTrackingHistory(athleteId);
+  // reset gameId input
+  if (els.trackGameId) els.trackGameId.value = "";
 
-  // Load last 5 + projection + vs opponent in parallel
+  // Load last 5 + projection + tracking
   loadLast5(athleteId);
   loadProjection(athleteId);
-  loadVsOpponent(athleteId);
+  loadTracking(athleteId);
+
+  // opponent list: still manual for now
+  loadVsOpponent(athleteId, currentOpponentTeamId);
 
   try{
     const res = await fetch(`/api/nba/player?athleteId=${athleteId}`);
@@ -669,60 +686,6 @@ async function loadPlayer(athleteId, name){
 
 /* ----------------- Wire UI ----------------- */
 
-document.getElementById("trackBtn")?.addEventListener("click", async () => {
-  if (!currentAthleteId) return;
-
-  const stat = (els.manualStat?.value || "pts").toLowerCase();
-  const line = parseFloat(els.manualLine?.value);
-
-  if (!Number.isFinite(line)){
-    alert("Enter a line first (ex: 25.5) then click Track.");
-    return;
-  }
-
-  // Use the most recent assess output in the UI by calling assess_line again
-  try{
-    const res = await fetch(`/api/nba/assess_line`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ athleteId: currentAthleteId, stat, line })
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    const payload = {
-      athleteId: currentAthleteId,
-      stat,
-      line,
-      probOver: data.probOver,
-      fairLine: data.fairLine,
-      projectionP50: data.projectionP50,
-      opponentTeamId: data.meta?.opponentTeamId ?? null,
-      // optional: later we can pass gameId automatically by selecting the matchup
-      gameId: null,
-      gameDate: null,
-      meta: {
-        minutesMu: data.meta?.minutesMu,
-        minutesSd: data.meta?.minutesSd,
-        minutesStability: data.meta?.minutesStability,
-        ptsEngine: data.meta?.ptsEngine,
-      }
-    };
-
-    const saveRes = await fetch(`/api/nba/track`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!saveRes.ok) throw new Error(`HTTP ${saveRes.status}`);
-    const saved = await saveRes.json();
-
-    alert(`Tracked! Saved id=${saved.saved?.id}`);
-  } catch (e){
-    alert(`Track failed: ${e.message}`);
-  }
-});
-
 els.refreshBtn.addEventListener("click", load);
 els.refreshLabel.textContent = `${Math.round(REFRESH_MS/1000)}s`;
 
@@ -741,6 +704,9 @@ if (els.manualLine){
 
 if (els.trackBtn){
   els.trackBtn.addEventListener("click", trackCurrent);
+}
+if (els.refreshTrackBtn){
+  els.refreshTrackBtn.addEventListener("click", () => loadTracking(currentAthleteId));
 }
 
 load();

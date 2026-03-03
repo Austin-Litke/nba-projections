@@ -82,36 +82,6 @@
           </div>
           <div class="muted small" id="projNote"></div>
 
-          <!-- Add these inside the modal (below projNote) -->
-          <div class="muted small" id="projNote"></div>
-
-          <!-- Simulation diagnostics & distribution -->
-          <div id="simDiagnostics" class="muted small" style="margin-top:8px;">
-            <div><b>Minutes:</b> <span id="diagMinutes">—</span> <span id="diagMinutesStability"></span></div>
-            <div><b>Opponent Adj:</b> <span id="diagOppAdj">—</span></div>
-            <div><b>Samples:</b> <span id="diagNSamples">—</span></div>
-          </div>
-
-          <div style="margin-top:8px;">
-            <div style="display:flex;gap:12px;align-items:center;">
-              <div><b>Distribution</b></div>
-              <div id="distPts" class="muted small">PTS: — (p10–p90)</div>
-              <div id="distReb" class="muted small">REB: —</div>
-              <div id="distAst" class="muted small">AST: —</div>
-            </div>
-          </div>
-
-          <!-- Fair line + alt lines -->
-          <div style="margin-top:8px;">
-            <div id="fairLine" class="muted small">Fair line: —</div>
-            <div id="altLines" class="muted small" style="margin-top:6px;">Alts: —</div>
-          </div>
-
-          <!-- Tracking button -->
-          <div style="margin-top:10px;">
-            <button id="trackBtn" style="padding:8px 10px;border-radius:8px;">Track this prediction</button>
-          </div>
-
           <!-- Manual line assessment -->
           <div class="lineRow">
             <label class="muted small">Manual Line:</label>
@@ -122,11 +92,18 @@
               <option value="ast">AST</option>
             </select>
             <button id="assessBtn">Assess</button>
-            <button id="trackBtn">Track</button>
           </div>
           <div id="assessResult" class="muted small">Enter a line and press Assess.</div>
 
-          <!-- Lists -->
+          <!-- Optional GameId (enables auto-settle) -->
+          <div class="lineRow" style="margin-top:6px;">
+            <label class="muted small">Game ID (optional):</label>
+            <input id="trackGameId" type="text" placeholder="e.g. 401810638" />
+            <button id="trackBtn">Track</button>
+            <button id="refreshTrackBtn" class="ghost">Refresh</button>
+          </div>
+
+          <!-- Two columns: last 5 and vs opponent -->
           <div class="twoCol">
             <div class="player-section">
               <h3>Last 5 Games</h3>
@@ -139,11 +116,36 @@
             </div>
           </div>
 
-          <!-- Tracking History (PER PLAYER) -->
+          <!-- Tracking -->
           <div class="player-section">
-            <h3>Tracking History (This Player)</h3>
-            <canvas id="trackChart" width="760" height="220" style="width:100%;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(0,0,0,.18)"></canvas>
-            <div id="trackTable" class="muted small" style="margin-top:10px"></div>
+            <h3>Tracked Predictions</h3>
+            <div class="muted small" id="trackMeta">—</div>
+
+            <div class="trackGrid">
+              <div class="trackChartWrap">
+                <canvas id="trackChart" width="520" height="180"></canvas>
+              </div>
+
+              <div class="trackTableWrap">
+                <table class="trackTable">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Stat</th>
+                      <th>Line</th>
+                      <th>P(over)</th>
+                      <th>Proj</th>
+                      <th>Actual</th>
+                      <th>Result</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="trackRows">
+                    <tr><td colspan="8" class="muted">No tracked rows yet.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div class="muted small" id="playerNote"></div>

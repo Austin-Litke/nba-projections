@@ -22,6 +22,52 @@
         "minutesStability": "Medium",
         "ptsEngine": "components"
       }
+    },
+    {
+      "id": 2,
+      "createdAt": "2026-03-02T22:10:45Z",
+      "settledAt": null,
+      "athleteId": 3112335,
+      "stat": "pts",
+      "line": 29.5,
+      "probOver": 0.3031,
+      "fairLine": 25.0,
+      "projectionP50": 25.0,
+      "opponentTeamId": null,
+      "gameId": null,
+      "gameDate": null,
+      "actual": null,
+      "result": null,
+      "meta": {
+        "minutesMu": 35.5,
+        "minutesSd": 4.43,
+        "minutesStability": "Medium",
+        "ptsEngine": "components",
+        "nSamples": 10000
+      }
+    },
+    {
+      "id": 3,
+      "createdAt": "2026-03-02T22:13:40Z",
+      "settledAt": null,
+      "athleteId": 3202,
+      "stat": "pts",
+      "line": 24.5,
+      "probOver": 0.506,
+      "fairLine": 26.0,
+      "projectionP50": 26.0,
+      "opponentTeamId": null,
+      "gameId": null,
+      "gameDate": null,
+      "actual": null,
+      "result": null,
+      "meta": {
+        "minutesMu": 35.8,
+        "minutesSd": 3.55,
+        "minutesStability": "Medium",
+        "ptsEngine": "components",
+        "nSamples": 10000
+      }
     }
   ]
 }

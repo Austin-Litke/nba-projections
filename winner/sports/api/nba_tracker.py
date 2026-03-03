@@ -4,11 +4,9 @@ from __future__ import annotations
 import os
 import json
 import math
-import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from .nba_client import http_get, safe_json_load, ESPN_SUMMARY
-
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "tracker_db.json")
 
@@ -36,17 +34,11 @@ def _write_db(db: Dict[str, Any]) -> None:
 
 
 def add_prediction(rec: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Expected fields (minimum):
-      athleteId:int, stat:str, line:float, probOver:float, fairLine:float,
-      projectionP50:float, opponentTeamId:int|None, gameId:str|None
-    """
     db = _read_db()
     preds = db.get("predictions", [])
     if not isinstance(preds, list):
         preds = []
 
-    # assign id
     next_id = 1
     if preds:
         try:
@@ -65,9 +57,9 @@ def add_prediction(rec: Dict[str, Any]) -> Dict[str, Any]:
         "fairLine": float(rec.get("fairLine")),
         "projectionP50": float(rec.get("projectionP50")),
         "opponentTeamId": rec.get("opponentTeamId"),
-        "gameId": rec.get("gameId"),       # optional but best if provided
+        "gameId": rec.get("gameId"),       # optional but required to auto-settle
         "gameDate": rec.get("gameDate"),   # optional
-        "actual": None,                    # filled at settle time
+        "actual": None,
         "result": None,                    # "over"|"under"|None
         "meta": rec.get("meta") or {},
     }
@@ -89,10 +81,6 @@ def list_predictions(athlete_id: Optional[int] = None) -> List[Dict[str, Any]]:
 
 
 def _extract_actual_from_summary(summary_data: dict, athlete_id: int) -> Optional[Dict[str, float]]:
-    """
-    Re-uses the same boxscore structure you already parse elsewhere.
-    We only need pts/reb/ast. If player not found (DNP), returns None.
-    """
     box = summary_data.get("boxscore") or {}
     players = box.get("players") or []
     if not isinstance(players, list):
@@ -155,7 +143,7 @@ def settle_prediction(pred_id: int) -> Dict[str, Any]:
         raise ValueError("Prediction not found")
 
     if p.get("settledAt"):
-        return p  # already settled
+        return p
 
     game_id = p.get("gameId")
     athlete_id = int(p.get("athleteId"))
@@ -190,22 +178,15 @@ def _logloss(prob: float, y: int) -> float:
 
 
 def metrics(preds: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Computes metrics on settled predictions.
-    y=1 if over, 0 if under.
-    """
     settled = [p for p in preds if p.get("settledAt") and p.get("actual") is not None]
     if not settled:
         return {"count": 0, "brier": None, "logloss": None, "calibration": []}
 
     bs = []
     ll = []
-
-    # calibration bins by predicted probOver
-    # bins: [0.0-0.1), [0.1-0.2), ..., [0.9-1.0]
-    bins = [{"lo": i / 10, "hi": (i + 1) / 10, "n": 0, "avgP": 0.0, "hitRate": 0.0} for i in range(10)]
-    bin_sum_p = [0.0] * 10
-    bin_sum_y = [0.0] * 10
+    bins = [{"lo": i / 10, "hi": (i + 1) / 10, "n": 0, "avgP": None, "hitRate": None} for i in range(10)]
+    sum_p = [0.0] * 10
+    sum_y = [0.0] * 10
 
     for p in settled:
         prob = float(p.get("probOver"))
@@ -215,17 +196,14 @@ def metrics(preds: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         idx = min(9, max(0, int(prob * 10)))
         bins[idx]["n"] += 1
-        bin_sum_p[idx] += prob
-        bin_sum_y[idx] += y
+        sum_p[idx] += prob
+        sum_y[idx] += y
 
     for i in range(10):
         n = bins[i]["n"]
         if n > 0:
-            bins[i]["avgP"] = round(bin_sum_p[i] / n, 4)
-            bins[i]["hitRate"] = round(bin_sum_y[i] / n, 4)
-        else:
-            bins[i]["avgP"] = None
-            bins[i]["hitRate"] = None
+            bins[i]["avgP"] = round(sum_p[i] / n, 4)
+            bins[i]["hitRate"] = round(sum_y[i] / n, 4)
 
     return {
         "count": len(settled),

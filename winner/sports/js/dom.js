@@ -43,4 +43,9 @@ export const els = {
   trackRows: document.getElementById("trackRows"),
   trackMeta: document.getElementById("trackMeta"),
   trackChart: document.getElementById("trackChart"),
+  distChart: document.getElementById("distChart"),
+  distLegend: document.getElementById("distLegend"),
+  distWrap: document.getElementById("distWrap"),
+
+
 };

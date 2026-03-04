@@ -4,9 +4,9 @@ import json
 import urllib.request
 from urllib.parse import urlparse
 import time
+
 _CACHE = {}  # url -> (expires_at, bytes)
 _DEFAULT_TTL = 60  # seconds
-
 
 # ESPN endpoints (these are the ones we’ve been using successfully)
 ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={date}"
@@ -35,6 +35,9 @@ _ALLOWED_HOSTS = (
     "site.web.api.espn.com",
     "www.espn.com",
     "m.espn.com",
+
+    # ✅ ADD: Underdog Fantasy
+    "api.underdogfantasy.com",
 )
 
 _DEFAULT_HEADERS = {

@@ -271,3 +271,82 @@ export function renderTrackingTable(preds, onSettleClick){
 
   drawTrackingChart(rows);
 }
+
+export function drawDistributionChart(canvasEl, histInfo, centerLine) {
+  if (!canvasEl) return;
+  const ctx = canvasEl.getContext("2d");
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+  if (!histInfo || !Array.isArray(histInfo.bins) || !Array.isArray(histInfo.counts)) {
+    ctx.fillStyle = "#9fb3c8";
+    ctx.fillText("No distribution available.", 10, 20);
+    return;
+  }
+
+  const bins = histInfo.bins;       // length N+1
+  const counts = histInfo.counts;   // length N
+  const freqs = histInfo.freqs || counts.map(c => c / (counts.reduce((s,x)=>s+x,0) || 1));
+  const N = counts.length;
+
+  const pad = 10;
+  const W = canvasEl.width;
+  const H = canvasEl.height;
+  const chartW = W - pad * 2;
+  const chartH = H - pad * 2;
+
+  // find max freq for scaling
+  const maxFreq = Math.max(...freqs, 0.0001);
+
+  // draw axes
+  ctx.globalAlpha = 0.9;
+  ctx.strokeStyle = "rgba(255,255,255,0.15)";
+  ctx.beginPath();
+  ctx.moveTo(pad, pad);
+  ctx.lineTo(pad, H - pad);
+  ctx.lineTo(W - pad, H - pad);
+  ctx.stroke();
+
+  // draw bars
+  const barW = chartW / N;
+  ctx.fillStyle = "rgba(255,255,255,0.14)";
+  for (let i = 0; i < N; i++) {
+    const f = freqs[i] || 0;
+    const bw = Math.max(1, Math.floor(barW * 0.9));
+    const x = pad + i * barW + (barW - bw) / 2;
+    const h = (f / maxFreq) * chartH;
+    const y = (H - pad) - h;
+    ctx.fillRect(x, y, bw, h);
+  }
+
+  // overlay median / center line as dashed red vertical (if provided)
+  if (typeof centerLine === "number") {
+    // convert centerLine to x coord
+    const mn = histInfo.min;
+    const mx = histInfo.max;
+    const clamped = Math.max(mn, Math.min(mx, centerLine));
+    const t = (clamped - mn) / (mx - mn || 1);
+    const x = pad + t * chartW;
+    ctx.strokeStyle = "rgba(255,99,71,0.95)"; // tomato-like
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,4]);
+    ctx.beginPath();
+    ctx.moveTo(x, pad);
+    ctx.lineTo(x, H - pad);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // label
+    ctx.fillStyle = "rgba(255,99,71,0.95)";
+    ctx.fillText(`line ${centerLine}`, x + 6, pad + 12);
+  }
+
+  // x-axis labels: show left, center, right bins
+  ctx.fillStyle = "#9fb3c8";
+  ctx.font = "12px sans-serif";
+  const leftLabel = (histInfo.min !== undefined) ? String(Math.round(histInfo.min)) : "";
+  const rightLabel = (histInfo.max !== undefined) ? String(Math.round(histInfo.max)) : "";
+  const midVal = histInfo.min !== undefined && histInfo.max !== undefined ? Math.round((histInfo.min + histInfo.max)/2) : "";
+  ctx.fillText(leftLabel, pad, H - pad + 14);
+  ctx.fillText(String(midVal), pad + chartW/2 - 10, H - pad + 14);
+  ctx.fillText(rightLabel, pad + chartW - 30, H - pad + 14);
+}

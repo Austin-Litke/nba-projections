@@ -304,3 +304,13 @@ button.ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,25
 }
 .trackPill.over{ background:rgba(61,220,151,.14); border-color:rgba(61,220,151,.35); }
 .trackPill.under{ background:rgba(255,209,102,.12); border-color:rgba(255,209,102,.35); }
+/* Projection distribution histogram */
+.distWrap{
+  margin-top:10px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(0,0,0,.14);
+  border-radius:8px;
+  padding:8px;
+}
+#distChart{ width:100%; height:160px; display:block; }
+#distLegend{ margin-top:6px; color:var(--muted); font-size:12px; }

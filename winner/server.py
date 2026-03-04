@@ -1,7 +1,5 @@
 # winner/server.py
 
-
-
 from __future__ import annotations
 
 import math
@@ -36,12 +34,12 @@ from sports.api.nba_stats import (
     get_current_season_year,
     extract_season_averages_from_web_stats,
     extract_season_avg_minutes_from_web_stats,
-    extract_season_shooting_from_web_stats,   # NEW
+    extract_season_shooting_from_web_stats,
 )
 from sports.api.nba_gamelog import (
     build_last_games,
     build_vs_opponent,
-    enrich_games_with_summary,                # NEW
+    enrich_games_with_summary,
 )
 from sports.api.nba_projection import (
     build_projection,
@@ -76,6 +74,7 @@ class Handler(SimpleHTTPRequestHandler):
     Your sports UI lives at /sports/...
     """
 
+    # Optional: less noisy logs
     def log_message(self, fmt, *args):
         print(fmt % args)
 
@@ -121,6 +120,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, data)
                 return
 
+            # Raw web stats passthrough (debugging)
             if parsed.path == "/api/nba/player_webstats_raw":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -133,6 +133,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, {"webStatsUrl": url, "data": data.get("data", data)})
                 return
 
+            # Raw gamelog passthrough (debugging)
             if parsed.path == "/api/nba/player_gamelog_raw":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -145,6 +146,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(200, {"gamelogUrl": url, "data": data.get("data", data)})
                 return
 
+            # Player: season averages
             if parsed.path == "/api/nba/player":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -154,10 +156,12 @@ class Handler(SimpleHTTPRequestHandler):
 
                 athlete_id_int = int(athlete_id)
 
+                # Name (core endpoint)
                 athlete_url = ESPN_CORE_ATHLETE.format(athleteId=athlete_id_int)
                 athlete = safe_json_load(http_get(athlete_url))
                 name = athlete.get("displayName") or athlete.get("fullName") or athlete.get("name") or "Player"
 
+                # Stats (web endpoint)
                 web_url = ESPN_WEB_STATS.format(athleteId=athlete_id_int)
                 web = safe_json_load(http_get(web_url))
 
@@ -177,6 +181,7 @@ class Handler(SimpleHTTPRequestHandler):
                 })
                 return
 
+            # Player gamelog (last N games)
             if parsed.path == "/api/nba/player_gamelog":
                 qs = parse_qs(parsed.query)
                 athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
@@ -194,9 +199,43 @@ class Handler(SimpleHTTPRequestHandler):
                 games, dbg = build_last_games(int(athlete_id), limit=limit_int)
                 self.send_json(200, {"athleteId": int(athlete_id), "games": games, "debug": dbg})
                 return
-            
-            
-                        # List tracked predictions (optionally filter by athleteId)
+
+            # Player vs opponent (this season)
+            if parsed.path == "/api/nba/player_vs_opponent":
+                qs = parse_qs(parsed.query)
+                athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
+                opp_id = (qs.get("opponentTeamId", [""])[0] or "").strip()
+                limit = (qs.get("limit", ["25"])[0] or "25").strip()
+
+                if not athlete_id.isdigit() or not opp_id.isdigit():
+                    self.send_json(400, {"error": "athleteId and opponentTeamId required"})
+                    return
+
+                try:
+                    limit_int = max(1, min(50, int(limit)))
+                except Exception:
+                    limit_int = 25
+
+                athlete_id_int = int(athlete_id)
+                opp_id_int = int(opp_id)
+
+                games, dbg = build_vs_opponent(athlete_id_int, opp_id_int, limit=limit_int)
+
+                # Enrich with boxscore summary where possible (similar to last_games enrichment)
+                try:
+                    games_enriched, enrich_dbg = enrich_games_with_summary(games, athlete_id_int)
+                except Exception:
+                    games_enriched, enrich_dbg = games, {"error": "enrich failed"}
+
+                self.send_json(200, {
+                    "athleteId": athlete_id_int,
+                    "opponentTeamId": opp_id_int,
+                    "games": games_enriched,
+                    "debug": {**dbg, **(enrich_dbg or {})},
+                })
+                return
+
+            # List tracked predictions (optionally filter by athleteId)
             if parsed.path == "/api/nba/tracked":
                 qs = parse_qs(parsed.query)
                 aid = (qs.get("athleteId", [""])[0] or "").strip()
@@ -251,6 +290,11 @@ class Handler(SimpleHTTPRequestHandler):
 
                 if opp_id_int is not None:
                     vs_games, _dbgvs = build_vs_opponent(athlete_id_int, opp_id_int, limit=25)
+                    # also try to enrich vs_games for better component info
+                    try:
+                        vs_games, _enrich_vs_dbg = enrich_games_with_summary(vs_games, athlete_id_int)
+                    except Exception:
+                        pass
 
                 base = build_projection(season_avg, season_minutes, last_games_5, vs_games)
                 meta = base.get("meta") or {}
@@ -300,19 +344,22 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json(500, {"error": str(e)})
             return
 
+        # ---------------- STATIC FILES ----------------
         return super().do_GET()
 
     def do_POST(self):
         parsed = urlparse(self.path)
 
         try:
+            # NEW: Assess a manual line (probability of going OVER)
+            # Body: { athleteId, stat: "pts|reb|ast", line: number, opponentTeamId?: number }
             if parsed.path == "/api/nba/assess_line":
                 body = _read_json_body(self)
 
                 athlete_id = body.get("athleteId")
                 stat = (body.get("stat") or "pts").strip().lower()
                 line = body.get("line")
-                opp_id = body.get("opponentTeamId")
+                opp_id = body.get("opponentTeamId")  # optional
 
                 try:
                     athlete_id_int = int(athlete_id)
@@ -330,6 +377,7 @@ class Handler(SimpleHTTPRequestHandler):
                     self.send_json(400, {"error": "line must be a number"})
                     return
 
+                # 1) Build projection mean (μ) using same pipeline as /player_projection
                 season_year = get_current_season_year()
 
                 web_url = ESPN_WEB_STATS.format(athleteId=athlete_id_int)
@@ -354,6 +402,10 @@ class Handler(SimpleHTTPRequestHandler):
 
                 if opp_id_int is not None:
                     vs_games, _dbgvs = build_vs_opponent(athlete_id_int, opp_id_int, limit=25)
+                    try:
+                        vs_games, _enrich_vs_dbg = enrich_games_with_summary(vs_games, athlete_id_int)
+                    except Exception:
+                        pass
 
                 base = build_projection(season_avg, season_minutes, last_games_5, vs_games)
                 meta = base.get("meta") or {}
@@ -410,9 +462,8 @@ class Handler(SimpleHTTPRequestHandler):
                     }
                 })
                 return
-            
-            
-                        # Track a prediction result (store it)
+
+            # Track a prediction result (store it)
             # Body:
             # { athleteId, stat, line, probOver, fairLine, projectionP50, opponentTeamId?, gameId?, gameDate?, meta? }
             if parsed.path == "/api/nba/track":

@@ -86,24 +86,31 @@
           <div class="lineRow">
             <label class="muted small">Manual Line:</label>
             <input id="manualLine" type="number" step="0.5" placeholder="e.g. 25.5" />
+
             <select id="manualStat">
               <option value="pts">PTS</option>
               <option value="reb">REB</option>
               <option value="ast">AST</option>
             </select>
+
+            <input id="manualOdds" type="text" placeholder="odds (e.g. -110 or +120)" />
+
             <button id="assessBtn">Assess</button>
           </div>
-          <div id="assessResult" class="muted small">Enter a line and press Assess.</div>
 
-          <!-- Optional GameId (enables auto-settle) -->
-          <div class="lineRow" style="margin-top:6px;">
-            <label class="muted small">Game ID (optional):</label>
-            <input id="trackGameId" type="text" placeholder="e.g. 401810638" />
-            <button id="trackBtn">Track</button>
-            <button id="refreshTrackBtn" class="ghost">Refresh</button>
+          <div id="assessResult" class="muted small">
+            Enter a line and press Assess.
           </div>
 
-          <!-- Two columns: last 5 and vs opponent -->
+          <!-- ✅ NEW: Explanation / Edge panel -->
+          <div class="explainPanel" id="explainPanel">
+            <div class="explainTitle">Model Explanation & Edge</div>
+            <div id="explainBody" class="explainBody muted small">
+              Assess a line to see edge + model inputs.
+            </div>
+          </div>
+
+          <!-- Last 5 + Vs Opponent -->
           <div class="twoCol">
             <div class="player-section">
               <h3>Last 5 Games</h3>
@@ -116,35 +123,39 @@
             </div>
           </div>
 
-          <!-- Tracking -->
+          <!-- ✅ Tracking -->
           <div class="player-section">
-            <h3>Tracked Predictions</h3>
-            <div class="muted small" id="trackMeta">—</div>
-
-            <div class="trackGrid">
-              <div class="trackChartWrap">
-                <canvas id="trackChart" width="520" height="180"></canvas>
+            <div class="trackHeader">
+              <h3>Tracking (This Player)</h3>
+              <div class="trackActions">
+                <input id="trackGameId" class="trackInput" placeholder="optional gameId (for settling)" />
+                <button id="trackBtn">Track</button>
+                <button id="refreshTrackBtn" class="ghostBtn">Refresh</button>
               </div>
+            </div>
 
-              <div class="trackTableWrap">
-                <table class="trackTable">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Stat</th>
-                      <th>Line</th>
-                      <th>P(over)</th>
-                      <th>Proj</th>
-                      <th>Actual</th>
-                      <th>Result</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="trackRows">
-                    <tr><td colspan="8" class="muted">No tracked rows yet.</td></tr>
-                  </tbody>
-                </table>
-              </div>
+            <div id="trackMeta" class="muted small">—</div>
+
+            <div class="trackChartWrap">
+              <canvas id="trackChart" width="760" height="180"></canvas>
+            </div>
+
+            <div class="trackTableWrap">
+              <table class="trackTable">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Stat</th>
+                    <th>Line</th>
+                    <th>P(Over)</th>
+                    <th>Proj (P50)</th>
+                    <th>Actual</th>
+                    <th>Result</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="trackRows"></tbody>
+              </table>
             </div>
           </div>
 

@@ -459,6 +459,29 @@
         "ptsEngine": "components",
         "nSamples": 10000
       }
+    },
+    {
+      "id": 21,
+      "createdAt": "2026-03-05T15:40:39Z",
+      "settledAt": null,
+      "athleteId": 5104157,
+      "stat": "pts",
+      "line": 23.5,
+      "probOver": 0.2391,
+      "fairLine": 17.0,
+      "projectionP50": 17.0,
+      "opponentTeamId": 8,
+      "gameId": null,
+      "gameDate": null,
+      "actual": null,
+      "result": null,
+      "meta": {
+        "minutesMu": 29.6,
+        "minutesSd": 4.62,
+        "minutesStability": "Medium",
+        "ptsEngine": "components",
+        "nSamples": 10000
+      }
     }
   ]
 }

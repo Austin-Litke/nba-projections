@@ -37,6 +37,7 @@ export const els = {
   explainPanel: document.getElementById("explainPanel"),
   explainBody: document.getElementById("explainBody"),
 
+  udBasicLines: document.getElementById("udBasicLines"),
   trackGameId: document.getElementById("trackGameId"),
   trackBtn: document.getElementById("trackBtn"),
   refreshTrackBtn: document.getElementById("refreshTrackBtn"),

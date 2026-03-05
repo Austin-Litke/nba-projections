@@ -173,17 +173,14 @@ button.ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,25
   border-radius:12px;
   padding:10px 10px;
   outline:none;
-  #lineRowOddsHint { opacity: .8; }
-  #lineRowOddsHint b { color: #fff; }
-
-  #lineRowOddsHint { display:none; } /* optional, ignore if unused */
-
-  /* Odds input sizing */
-  #manualOdds{ width: 170px; }
 }
 .lineRow input{width:140px}
-#manualOdds{ width: 170px; }
 
+/* ✅ keep these as top-level rules (not nested) */
+#manualOdds{ width: 170px; }
+/* optional hint if you ever add it */
+#lineRowOddsHint { opacity: .8; }
+#lineRowOddsHint b { color: #fff; }
 
 .player-section h3{
   margin: 6px 0 8px 0;
@@ -219,7 +216,7 @@ button.ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,25
   white-space: nowrap;
 }
 
-/* ✅ NEW: Explanation panel */
+/* Explanation panel */
 .explainPanel{
   border:1px solid rgba(255,255,255,.12);
   background:rgba(0,0,0,.18);
@@ -235,7 +232,7 @@ button.ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,25
   line-height:1.35;
 }
 
-/* ✅ Tracking */
+/* Tracking */
 .trackHeader{
   display:flex;
   justify-content:space-between;
@@ -304,6 +301,7 @@ button.ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,25
 }
 .trackPill.over{ background:rgba(61,220,151,.14); border-color:rgba(61,220,151,.35); }
 .trackPill.under{ background:rgba(255,209,102,.12); border-color:rgba(255,209,102,.35); }
+
 /* Projection distribution histogram */
 .distWrap{
   margin-top:10px;

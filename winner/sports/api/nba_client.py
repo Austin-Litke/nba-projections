@@ -25,6 +25,8 @@ ESPN_WEB_GAMELOG = "https://site.web.api.espn.com/apis/common/v3/sports/basketba
 # Box score / game summary (works for extracting a player's line)
 ESPN_SUMMARY = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event={gameId}"
 
+ESPN_SEARCH = "https://site.web.api.espn.com/apis/common/v3/search?query={q}&limit=10"
+
 _ALLOWED_HOST_SUFFIXES = (
     "espn.com",
 )

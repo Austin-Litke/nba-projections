@@ -1,6 +1,7 @@
 import { els } from "./dom.js";
 import { state } from "./state.js";
 import { api } from "./api.js";
+import { loadUnderdogLinesForAthlete } from "./underdog_lines.js";
 import {
   escapeHtml,
   parseAmericanOdds,
@@ -282,7 +283,7 @@ export async function loadPlayer(athleteId, name){
   loadProjection(athleteId);
   loadTracking();
   loadVsOpponent(athleteId);
-
+  loadUnderdogLinesForAthlete(athleteId);
   try{
     const data = await api.player(athleteId);
 

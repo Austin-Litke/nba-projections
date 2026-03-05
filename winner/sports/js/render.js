@@ -1,6 +1,7 @@
 import { els } from "./dom.js";
 import { state } from "./state.js";
 import { escapeHtml, fmtLocalTime, badgeFor, fmtDateShort } from "./utils.js";
+import { loadUnderdogLinesForAthlete } from "./underdog_lines.js";
 
 export function clearGames(){ els.games.innerHTML = ""; }
 export function clearRoster(){ els.roster.innerHTML = ""; els.sideMeta.textContent = "—"; }

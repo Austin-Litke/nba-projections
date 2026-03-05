@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 import traceback
+import importlib
 from urllib.parse import urlparse, parse_qs
+
+# ✅ make sure this matches the actual filename you want:
+# winner/sports/api/over_under_lines.py
 from sports.api.over_under_lines import lines_for_player_basic_stats
+
 from api.utils import read_json_body
 
-# IMPORTANT: keep imports the same as your original server.py
 from sports.api.nba_tracker import (
     add_prediction,
     list_predictions,
@@ -49,13 +53,8 @@ from sports.api.nba_simulator import (
 
 
 def _histogram(samples: list[float], n_bins: int = 30):
-    """
-    Returns small histogram payload:
-      { bins: [edge0..edgeN], counts: [N], freqs:[N], min, max }
-    """
     if not samples:
         return None
-
     try:
         mn = float(min(samples))
         mx = float(max(samples))
@@ -89,64 +88,108 @@ def _histogram(samples: list[float], n_bins: int = 30):
         total = sum(counts) or 1
         freqs = [c / total for c in counts]
 
-        return {
-            "bins": bins,
-            "counts": counts,
-            "freqs": freqs,
-            "min": mn,
-            "max": mx,
-        }
+        return {"bins": bins, "counts": counts, "freqs": freqs, "min": mn, "max": mx}
     except Exception:
         return None
 
 
+def _err_with_trace(e: Exception):
+    # last ~18 lines of traceback is usually enough
+    tb = traceback.format_exc().splitlines()
+    return {
+        "error": str(e),
+        "traceTail": tb[-18:],
+    }
+
+
 def handle_get(path: str, query: str):
-    """
-    Returns tuple: (status_code:int, payload:dict) OR None if not an NBA API route.
-    """
     parsed = urlparse(path + (("?" + query) if query else ""))
     qs = parse_qs(parsed.query)
 
     try:
-        # /api/nba/scoreboard?date=YYYYMMDD
         if parsed.path == "/api/nba/scoreboard":
             date = (qs.get("date", [""])[0] or "").strip()
             if not date.isdigit() or len(date) != 8:
                 return 400, {"error": "date=YYYYMMDD required"}
-
             url = ESPN_SCOREBOARD.format(date=date)
             data = safe_json_load(http_get(url))
             return 200, data
 
-        # /api/nba/teams
         if parsed.path == "/api/nba/teams":
             data = safe_json_load(http_get(ESPN_TEAMS))
             return 200, data
 
-        # /api/nba/roster?teamId=#
         if parsed.path == "/api/nba/roster":
             team_id = (qs.get("teamId", [""])[0] or "").strip()
             if not team_id.isdigit():
                 return 400, {"error": "teamId required"}
-
             url = ESPN_ROSTER.format(teamId=team_id)
             data = safe_json_load(http_get(url))
             return 200, data
 
-        # /api/nba/player_webstats_raw
         if parsed.path == "/api/nba/player_webstats_raw":
             athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
             if not athlete_id.isdigit():
                 return 400, {"error": "athleteId required"}
-
             url = ESPN_WEB_STATS.format(athleteId=int(athlete_id))
             data = safe_json_load(http_get(url))
             return 200, {"webStatsUrl": url, "data": data.get("data", data)}
-        
-                # -------------------------------------------------
+
+        # ✅ DEBUG ENDPOINT: tells us what file/module is actually loaded + what fetch returns
+        if parsed.path == "/api/nba/underdog_debug":
+            athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
+            if not athlete_id.isdigit():
+                return 400, {"error": "athleteId required"}
+
+            athlete_id_int = int(athlete_id)
+            athlete_url = ESPN_CORE_ATHLETE.format(athleteId=athlete_id_int)
+            athlete = safe_json_load(http_get(athlete_url))
+            name = (
+                athlete.get("displayName")
+                or athlete.get("fullName")
+                or athlete.get("name")
+                or ""
+            )
+
+            # import the module object so we can see __file__
+            mod = importlib.import_module("sports.api.over_under_lines")
+            module_file = getattr(mod, "__file__", None)
+
+            fetch_info = {"available": False}
+            if hasattr(mod, "fetch_over_under_lines"):
+                fetch_info["available"] = True
+                raw = mod.fetch_over_under_lines()
+                fetch_info["type"] = str(type(raw))
+                if isinstance(raw, dict):
+                    fetch_info["keys"] = sorted(list(raw.keys()))[:40]
+                    # if it has an error, include it
+                    if raw.get("_error"):
+                        fetch_info["error"] = raw.get("_error")
+                        fetch_info["status"] = raw.get("status")
+                        fetch_info["bodyPreview"] = raw.get("bodyPreview")
+                else:
+                    # show a preview of the string/whatever
+                    fetch_info["preview"] = str(raw)[:400]
+
+            # also do the normal parse attempt
+            try:
+                lines = lines_for_player_basic_stats(name)
+                parse_info = {"ok": True, "count": len(lines)}
+            except Exception as e:
+                parse_info = {"ok": False, **_err_with_trace(e)}
+
+            return 200, {
+                "athleteId": athlete_id_int,
+                "playerNameFromESPN": name,
+                "moduleFile": module_file,
+                "fetch": fetch_info,
+                "parse": parse_info,
+            }
+
+        # -------------------------------------------------
         # Underdog active lines (PTS / REB / AST only)
         # -------------------------------------------------
-        if parsed.path == "/api/nba/underdog_lines":
+        if parsed.path in ("/api/nba/underdog_lines", "/api/nba/over_under_lines"):
             athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
             if not athlete_id.isdigit():
                 return 400, {"error": "athleteId required"}
@@ -170,21 +213,18 @@ def handle_get(path: str, query: str):
                 "lines": basic_lines,
                 "debug": {
                     "athleteUrl": athlete_url,
-                    "underdogEndpoint": "beta/v5/over_under_lines"
-                }
+                    "underdogEndpoint": "beta/v5/over_under_lines",
+                },
             }
 
-        # /api/nba/player_gamelog_raw
         if parsed.path == "/api/nba/player_gamelog_raw":
             athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
             if not athlete_id.isdigit():
                 return 400, {"error": "athleteId required"}
-
             url = ESPN_WEB_GAMELOG.format(athleteId=int(athlete_id))
             data = safe_json_load(http_get(url))
             return 200, {"gamelogUrl": url, "data": data.get("data", data)}
 
-        # /api/nba/player?athleteId=#
         if parsed.path == "/api/nba/player":
             athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
             if not athlete_id.isdigit():
@@ -214,7 +254,6 @@ def handle_get(path: str, query: str):
                 },
             }
 
-        # /api/nba/player_gamelog?athleteId=#&limit=5
         if parsed.path == "/api/nba/player_gamelog":
             athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
             limit = (qs.get("limit", ["5"])[0] or "5").strip()
@@ -230,7 +269,6 @@ def handle_get(path: str, query: str):
             games, dbg = build_last_games(int(athlete_id), limit=limit_int)
             return 200, {"athleteId": int(athlete_id), "games": games, "debug": dbg}
 
-        # /api/nba/player_vs_opponent?athleteId=#&opponentTeamId=#&limit=25
         if parsed.path == "/api/nba/player_vs_opponent":
             athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
             opp_id = (qs.get("opponentTeamId", [""])[0] or "").strip()
@@ -260,14 +298,12 @@ def handle_get(path: str, query: str):
                 "debug": {**dbg, **(enrich_dbg or {})},
             }
 
-        # /api/nba/tracked?athleteId=#
         if parsed.path == "/api/nba/tracked":
             aid = (qs.get("athleteId", [""])[0] or "").strip()
             athlete_id = int(aid) if aid.isdigit() else None
             preds = list_predictions(athlete_id)
             return 200, {"athleteId": athlete_id, "predictions": preds}
 
-        # /api/nba/tracked_metrics?athleteId=#
         if parsed.path == "/api/nba/tracked_metrics":
             aid = (qs.get("athleteId", [""])[0] or "").strip()
             athlete_id = int(aid) if aid.isdigit() else None
@@ -275,7 +311,6 @@ def handle_get(path: str, query: str):
             m = tracker_metrics(preds)
             return 200, {"athleteId": athlete_id, "metrics": m}
 
-        # /api/nba/player_projection?athleteId=#&opponentTeamId=#
         if parsed.path == "/api/nba/player_projection":
             athlete_id = (qs.get("athleteId", [""])[0] or "").strip()
             opp_id = (qs.get("opponentTeamId", [""])[0] or "").strip()
@@ -324,7 +359,6 @@ def handle_get(path: str, query: str):
                 n=10000,
             )
 
-            # ✅ histogram payload (compact)
             pts_hist = _histogram(sim.get("samples", {}).get("pts", []) or [], n_bins=30)
 
             return 200, {
@@ -353,29 +387,23 @@ def handle_get(path: str, query: str):
                 },
             }
 
-        # Not an NBA route
         return None
 
     except Exception as e:
-        traceback.print_exc()
-        return 500, {"error": str(e)}
+        return 500, _err_with_trace(e)
 
 
 def handle_post(handler, path: str):
-    """
-    Returns tuple: (status_code:int, payload:dict) OR None if not an NBA API route.
-    """
     parsed = urlparse(path)
 
     try:
-        # POST /api/nba/assess_line
         if parsed.path == "/api/nba/assess_line":
             body = read_json_body(handler)
 
             athlete_id = body.get("athleteId")
             stat = (body.get("stat") or "pts").strip().lower()
             line = body.get("line")
-            opp_id = body.get("opponentTeamId")  # optional
+            opp_id = body.get("opponentTeamId")
 
             try:
                 athlete_id_int = int(athlete_id)
@@ -470,13 +498,11 @@ def handle_post(handler, path: str):
                 },
             }
 
-        # POST /api/nba/track
         if parsed.path == "/api/nba/track":
             body = read_json_body(handler)
             rec = add_prediction(body)
             return 200, {"saved": rec}
 
-        # POST /api/nba/settle
         if parsed.path == "/api/nba/settle":
             body = read_json_body(handler)
             pid = body.get("id")
@@ -491,5 +517,4 @@ def handle_post(handler, path: str):
         return None
 
     except Exception as e:
-        traceback.print_exc()
-        return 500, {"error": str(e)}
+        return 500, _err_with_trace(e)

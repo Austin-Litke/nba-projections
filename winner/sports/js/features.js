@@ -1,3 +1,4 @@
+// winner/sports/js/features.js
 import { els } from "./dom.js";
 import { state } from "./state.js";
 import { api } from "./api.js";
@@ -153,28 +154,29 @@ export async function assessManualLine(){
     let kelly = null;
 
     if (odds != null && prob != null && payout != null){
-    evPerDollar = (prob * payout) - (1 - prob);
-    if (implied != null) edgeVsImplied = prob - implied;
-    kelly = kellyFraction(prob, odds);
+      evPerDollar = (prob * payout) - (1 - prob);
+      if (implied != null) edgeVsImplied = prob - implied;
+      kelly = kellyFraction(prob, odds);
     }
+
     const pct = (prob == null) ? "—" : `${Math.round(prob * 100)}%`;
 
     const p50 = (typeof data.projectionP50 === "number") ? data.projectionP50.toFixed(1) : "—";
     const band = data.band ? `p10 ${data.band.p10} • p50 ${data.band.p50} • p90 ${data.band.p90}` : "";
 
     if (els.assessResult){
-        const oddsTxt = (odds == null) ? "—" : (odds > 0 ? `+${odds}` : `${odds}`);
-        const impliedTxt = (implied == null) ? "—" : `${Math.round(implied * 1000)/10}%`;
-        const edgeTxt = (edgeVsImplied == null) ? "—" : `${(edgeVsImplied >= 0 ? "+" : "")}${Math.round(edgeVsImplied * 1000)/10}%`;
-        const evTxt = (evPerDollar == null) ? "—" : `${(evPerDollar >= 0 ? "+" : "")}${evPerDollar.toFixed(3)}`;
-        const kellyTxt = (kelly == null) ? "—" : `${Math.round(kelly * 1000)/10}%`;
+      const oddsTxt = (odds == null) ? "—" : (odds > 0 ? `+${odds}` : `${odds}`);
+      const impliedTxt = (implied == null) ? "—" : `${Math.round(implied * 1000)/10}%`;
+      const edgeTxt = (edgeVsImplied == null) ? "—" : `${(edgeVsImplied >= 0 ? "+" : "")}${Math.round(edgeVsImplied * 1000)/10}%`;
+      const evTxt = (evPerDollar == null) ? "—" : `${(evPerDollar >= 0 ? "+" : "")}${evPerDollar.toFixed(3)}`;
+      const kellyTxt = (kelly == null) ? "—" : `${Math.round(kelly * 1000)/10}%`;
 
-        els.assessResult.innerHTML =
-            `<b>${pct}</b> chance to go OVER ${line.toFixed(1)} ${stat.toUpperCase()}<br/>
-            median=${p50}${band ? `<br/>${escapeHtml(band)}` : ""}<br/>
-            fair line=${data.fairLine ?? "—"} • samples=${data.meta?.nSamples ?? "—"}<br/><br/>
-            Odds=${escapeHtml(oddsTxt)} • implied=${escapeHtml(impliedTxt)} • edge=${escapeHtml(edgeTxt)}<br/>
-            EV per $1=${escapeHtml(evTxt)} • Kelly=${escapeHtml(kellyTxt)} (suggest 1/2 Kelly)`;
+      els.assessResult.innerHTML =
+        `<b>${pct}</b> chance to go OVER ${line.toFixed(1)} ${stat.toUpperCase()}<br/>
+        median=${p50}${band ? `<br/>${escapeHtml(band)}` : ""}<br/>
+        fair line=${data.fairLine ?? "—"} • samples=${data.meta?.nSamples ?? "—"}<br/><br/>
+        Odds=${escapeHtml(oddsTxt)} • implied=${escapeHtml(impliedTxt)} • edge=${escapeHtml(edgeTxt)}<br/>
+        EV per $1=${escapeHtml(evTxt)} • Kelly=${escapeHtml(kellyTxt)} (suggest 1/2 Kelly)`;
     }
 
     renderExplanationFromAssess(stat, data);
@@ -228,7 +230,9 @@ export async function trackCurrent(){
     return;
   }
 
-  const gameId = (els.trackGameId?.value || "").trim() || null;
+  // ✅ NEW: auto-fill gameId from state if input empty
+  const gameIdFromBox = (els.trackGameId?.value || "").trim();
+  const gameId = gameIdFromBox || state.currentGameId || null;
 
   try{
     const assessPayload = { athleteId: state.currentAthleteId, stat, line };
@@ -244,8 +248,13 @@ export async function trackCurrent(){
       fairLine: assess.fairLine,
       projectionP50: assess.projectionP50,
       opponentTeamId: assess.meta?.opponentTeamId ?? (state.currentOpponentTeamId ? Number(state.currentOpponentTeamId) : null),
+
+      // ✅ IMPORTANT: now usually non-null
       gameId,
-      gameDate: null,
+
+      // optional nice-to-have
+      gameDate: state.currentGameDateIso || null,
+
       meta: {
         minutesMu: assess.meta?.minutesMu,
         minutesSd: assess.meta?.minutesSd,
@@ -277,13 +286,17 @@ export async function loadPlayer(athleteId, name){
   if (els.assessResult) els.assessResult.textContent = "Enter a line and press Assess.";
   if (els.explainBody) els.explainBody.textContent = "Assess a line to see edge + model inputs.";
 
-  if (els.trackGameId) els.trackGameId.value = "";
+  // ✅ NEW: auto-fill the trackGameId input with current selected game
+  if (els.trackGameId){
+    els.trackGameId.value = state.currentGameId ? String(state.currentGameId) : "";
+  }
 
   loadLast5(athleteId);
   loadProjection(athleteId);
   loadTracking();
   loadVsOpponent(athleteId);
   loadUnderdogLinesForAthlete(athleteId);
+
   try{
     const data = await api.player(athleteId);
 

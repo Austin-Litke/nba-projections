@@ -1,3 +1,4 @@
+// winner/sports/js/render.js
 import { els } from "./dom.js";
 import { state } from "./state.js";
 import { escapeHtml, fmtLocalTime, badgeFor, fmtDateShort } from "./utils.js";
@@ -34,6 +35,10 @@ export function gameCard(g, onTeamClick){
   const timeLabel = startIso ? fmtLocalTime(startIso) : "—";
   const note = comp?.venue?.fullName ? comp.venue.fullName : (g.name || "");
 
+  // ✅ ESPN event id: usually g.id is the event id
+  // fallback to comp.id if needed
+  const eventId = g?.id || comp?.id || null;
+
   const div = document.createElement("div");
   div.className = "game";
 
@@ -69,10 +74,15 @@ export function gameCard(g, onTeamClick){
       const teamName = btn.dataset.teamname || "Team";
       if (!teamId) return;
 
+      // ✅ store opponent id
       state.currentOpponentTeamId =
         (btn.dataset.opponentid && String(btn.dataset.opponentid).trim())
           ? String(btn.dataset.opponentid).trim()
           : null;
+
+      // ✅ NEW: store selected event/game context
+      state.currentGameId = eventId ? String(eventId) : null;
+      state.currentGameDateIso = startIso || null;
 
       await onTeamClick(teamId, teamName);
     });
@@ -285,8 +295,7 @@ export function drawDistributionChart(canvasEl, histInfo, centerLine) {
     return;
   }
 
-  const bins = histInfo.bins;       // length N+1
-  const counts = histInfo.counts;   // length N
+  const counts = histInfo.counts;
   const freqs = histInfo.freqs || counts.map(c => c / (counts.reduce((s,x)=>s+x,0) || 1));
   const N = counts.length;
 
@@ -296,10 +305,8 @@ export function drawDistributionChart(canvasEl, histInfo, centerLine) {
   const chartW = W - pad * 2;
   const chartH = H - pad * 2;
 
-  // find max freq for scaling
   const maxFreq = Math.max(...freqs, 0.0001);
 
-  // draw axes
   ctx.globalAlpha = 0.9;
   ctx.strokeStyle = "rgba(255,255,255,0.15)";
   ctx.beginPath();
@@ -308,7 +315,6 @@ export function drawDistributionChart(canvasEl, histInfo, centerLine) {
   ctx.lineTo(W - pad, H - pad);
   ctx.stroke();
 
-  // draw bars
   const barW = chartW / N;
   ctx.fillStyle = "rgba(255,255,255,0.14)";
   for (let i = 0; i < N; i++) {
@@ -320,15 +326,13 @@ export function drawDistributionChart(canvasEl, histInfo, centerLine) {
     ctx.fillRect(x, y, bw, h);
   }
 
-  // overlay median / center line as dashed red vertical (if provided)
   if (typeof centerLine === "number") {
-    // convert centerLine to x coord
     const mn = histInfo.min;
     const mx = histInfo.max;
     const clamped = Math.max(mn, Math.min(mx, centerLine));
     const t = (clamped - mn) / (mx - mn || 1);
     const x = pad + t * chartW;
-    ctx.strokeStyle = "rgba(255,99,71,0.95)"; // tomato-like
+    ctx.strokeStyle = "rgba(255,99,71,0.95)";
     ctx.lineWidth = 2;
     ctx.setLineDash([6,4]);
     ctx.beginPath();
@@ -336,12 +340,10 @@ export function drawDistributionChart(canvasEl, histInfo, centerLine) {
     ctx.lineTo(x, H - pad);
     ctx.stroke();
     ctx.setLineDash([]);
-    // label
     ctx.fillStyle = "rgba(255,99,71,0.95)";
     ctx.fillText(`line ${centerLine}`, x + 6, pad + 12);
   }
 
-  // x-axis labels: show left, center, right bins
   ctx.fillStyle = "#9fb3c8";
   ctx.font = "12px sans-serif";
   const leftLabel = (histInfo.min !== undefined) ? String(Math.round(histInfo.min)) : "";

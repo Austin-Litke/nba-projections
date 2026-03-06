@@ -2,7 +2,6 @@
 import { els } from "./dom.js";
 import { state } from "./state.js";
 import { escapeHtml, fmtLocalTime, badgeFor, fmtDateShort } from "./utils.js";
-import { loadUnderdogLinesForAthlete } from "./underdog_lines.js";
 
 export function clearGames(){ els.games.innerHTML = ""; }
 export function clearRoster(){ els.roster.innerHTML = ""; els.sideMeta.textContent = "—"; }
@@ -35,8 +34,7 @@ export function gameCard(g, onTeamClick){
   const timeLabel = startIso ? fmtLocalTime(startIso) : "—";
   const note = comp?.venue?.fullName ? comp.venue.fullName : (g.name || "");
 
-  // ✅ ESPN event id: usually g.id is the event id
-  // fallback to comp.id if needed
+  // ✅ robust event/game id selection
   const eventId = g?.id || comp?.id || null;
 
   const div = document.createElement("div");
@@ -49,6 +47,8 @@ export function gameCard(g, onTeamClick){
           data-teamid="${awayId || ""}"
           data-teamname="${escapeHtml(awayName)}"
           data-opponentid="${homeId || ""}"
+          data-gameid="${eventId || ""}"
+          data-gamedate="${escapeHtml(startIso || "")}"
         >${escapeHtml(awayName)}</button>
         <div class="score">${awayScore}</div>
       </div>
@@ -57,6 +57,8 @@ export function gameCard(g, onTeamClick){
           data-teamid="${homeId || ""}"
           data-teamname="${escapeHtml(homeName)}"
           data-opponentid="${awayId || ""}"
+          data-gameid="${eventId || ""}"
+          data-gamedate="${escapeHtml(startIso || "")}"
         >${escapeHtml(homeName)}</button>
         <div class="score">${homeScore}</div>
       </div>
@@ -74,15 +76,28 @@ export function gameCard(g, onTeamClick){
       const teamName = btn.dataset.teamname || "Team";
       if (!teamId) return;
 
-      // ✅ store opponent id
       state.currentOpponentTeamId =
         (btn.dataset.opponentid && String(btn.dataset.opponentid).trim())
           ? String(btn.dataset.opponentid).trim()
           : null;
 
-      // ✅ NEW: store selected event/game context
-      state.currentGameId = eventId ? String(eventId) : null;
-      state.currentGameDateIso = startIso || null;
+      state.currentGameId =
+        (btn.dataset.gameid && String(btn.dataset.gameid).trim())
+          ? String(btn.dataset.gameid).trim()
+          : null;
+
+      state.currentGameDateIso =
+        (btn.dataset.gamedate && String(btn.dataset.gamedate).trim())
+          ? String(btn.dataset.gamedate).trim()
+          : null;
+
+      // ✅ NEW: autofill the Track gameId input when you click a game/team
+      if (els.trackGameId){
+        els.trackGameId.value = state.currentGameId || "";
+        els.trackGameId.placeholder = state.currentGameId
+          ? "gameId auto-filled"
+          : "optional gameId (for settling)";
+      }
 
       await onTeamClick(teamId, teamName);
     });
@@ -281,75 +296,4 @@ export function renderTrackingTable(preds, onSettleClick){
   });
 
   drawTrackingChart(rows);
-}
-
-export function drawDistributionChart(canvasEl, histInfo, centerLine) {
-  if (!canvasEl) return;
-  const ctx = canvasEl.getContext("2d");
-  if (!ctx) return;
-  ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-
-  if (!histInfo || !Array.isArray(histInfo.bins) || !Array.isArray(histInfo.counts)) {
-    ctx.fillStyle = "#9fb3c8";
-    ctx.fillText("No distribution available.", 10, 20);
-    return;
-  }
-
-  const counts = histInfo.counts;
-  const freqs = histInfo.freqs || counts.map(c => c / (counts.reduce((s,x)=>s+x,0) || 1));
-  const N = counts.length;
-
-  const pad = 10;
-  const W = canvasEl.width;
-  const H = canvasEl.height;
-  const chartW = W - pad * 2;
-  const chartH = H - pad * 2;
-
-  const maxFreq = Math.max(...freqs, 0.0001);
-
-  ctx.globalAlpha = 0.9;
-  ctx.strokeStyle = "rgba(255,255,255,0.15)";
-  ctx.beginPath();
-  ctx.moveTo(pad, pad);
-  ctx.lineTo(pad, H - pad);
-  ctx.lineTo(W - pad, H - pad);
-  ctx.stroke();
-
-  const barW = chartW / N;
-  ctx.fillStyle = "rgba(255,255,255,0.14)";
-  for (let i = 0; i < N; i++) {
-    const f = freqs[i] || 0;
-    const bw = Math.max(1, Math.floor(barW * 0.9));
-    const x = pad + i * barW + (barW - bw) / 2;
-    const h = (f / maxFreq) * chartH;
-    const y = (H - pad) - h;
-    ctx.fillRect(x, y, bw, h);
-  }
-
-  if (typeof centerLine === "number") {
-    const mn = histInfo.min;
-    const mx = histInfo.max;
-    const clamped = Math.max(mn, Math.min(mx, centerLine));
-    const t = (clamped - mn) / (mx - mn || 1);
-    const x = pad + t * chartW;
-    ctx.strokeStyle = "rgba(255,99,71,0.95)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6,4]);
-    ctx.beginPath();
-    ctx.moveTo(x, pad);
-    ctx.lineTo(x, H - pad);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = "rgba(255,99,71,0.95)";
-    ctx.fillText(`line ${centerLine}`, x + 6, pad + 12);
-  }
-
-  ctx.fillStyle = "#9fb3c8";
-  ctx.font = "12px sans-serif";
-  const leftLabel = (histInfo.min !== undefined) ? String(Math.round(histInfo.min)) : "";
-  const rightLabel = (histInfo.max !== undefined) ? String(Math.round(histInfo.max)) : "";
-  const midVal = histInfo.min !== undefined && histInfo.max !== undefined ? Math.round((histInfo.min + histInfo.max)/2) : "";
-  ctx.fillText(leftLabel, pad, H - pad + 14);
-  ctx.fillText(String(midVal), pad + chartW/2 - 10, H - pad + 14);
-  ctx.fillText(rightLabel, pad + chartW - 30, H - pad + 14);
 }

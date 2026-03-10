@@ -873,7 +873,7 @@
     {
       "id": 39,
       "createdAt": "2026-03-06T20:34:49Z",
-      "settledAt": null,
+      "settledAt": "2026-03-09T16:51:19Z",
       "athleteId": 3934672,
       "stat": "pts",
       "line": 26.5,
@@ -883,8 +883,8 @@
       "opponentTeamId": 7,
       "gameId": "401810766",
       "gameDate": "2026-03-07T02:00Z",
-      "actual": null,
-      "result": null,
+      "actual": 9.0,
+      "result": "under",
       "meta": {
         "minutesMu": 34.9,
         "minutesSd": 3.48,
@@ -896,7 +896,7 @@
     {
       "id": 40,
       "createdAt": "2026-03-06T20:35:30Z",
-      "settledAt": null,
+      "settledAt": "2026-03-09T14:46:47Z",
       "athleteId": 3112335,
       "stat": "pts",
       "line": 26.5,
@@ -906,8 +906,8 @@
       "opponentTeamId": 18,
       "gameId": "401810766",
       "gameDate": "2026-03-07T02:00Z",
-      "actual": null,
-      "result": null,
+      "actual": 38.0,
+      "result": "over",
       "meta": {
         "minutesMu": 36.7,
         "minutesSd": 3.76,
@@ -1073,6 +1073,52 @@
         "minutesMu": 35.2,
         "minutesSd": 5.88,
         "minutesStability": "Volatile",
+        "ptsEngine": "components",
+        "nSamples": 10000
+      }
+    },
+    {
+      "id": 48,
+      "createdAt": "2026-03-06T22:58:55Z",
+      "settledAt": null,
+      "athleteId": 4066383,
+      "stat": "pts",
+      "line": 15.5,
+      "probOver": 0.1764,
+      "fairLine": 10.6,
+      "projectionP50": 10.6,
+      "opponentTeamId": 14,
+      "gameId": "401810764",
+      "gameDate": "2026-03-07T00:00Z",
+      "actual": null,
+      "result": null,
+      "meta": {
+        "minutesMu": 29.3,
+        "minutesSd": 5.09,
+        "minutesStability": "Medium",
+        "ptsEngine": "components",
+        "nSamples": 10000
+      }
+    },
+    {
+      "id": 49,
+      "createdAt": "2026-03-09T19:01:46Z",
+      "settledAt": null,
+      "athleteId": 4278073,
+      "stat": "pts",
+      "line": 31.5,
+      "probOver": 0.3729,
+      "fairLine": 28.5,
+      "projectionP50": 28.5,
+      "opponentTeamId": 7,
+      "gameId": "401810788",
+      "gameDate": "2026-03-09T23:30Z",
+      "actual": null,
+      "result": null,
+      "meta": {
+        "minutesMu": 33.1,
+        "minutesSd": 2.62,
+        "minutesStability": "Stable",
         "ptsEngine": "components",
         "nSamples": 10000
       }

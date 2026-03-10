@@ -80,4 +80,9 @@ export function wireUi(){
   if (els.refreshTrackBtn){
     els.refreshTrackBtn.addEventListener("click", () => loadTracking());
   }
+
+  // ✅ NEW: show team picks panel is present (debug)
+  if (els.teamPicksStatus){
+    els.teamPicksStatus.textContent = "Team Picks ready — click a team, then click Top 2.";
+  }
 }

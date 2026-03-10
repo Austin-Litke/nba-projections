@@ -22,12 +22,14 @@ export const api = {
   player: (athleteId) => getJson(`/api/nba/player?athleteId=${athleteId}`),
   gamelog: (athleteId, limit=5) => getJson(`/api/nba/player_gamelog?athleteId=${athleteId}&limit=${limit}`),
   vsOpponent: (athleteId, oppId, limit=25) => getJson(`/api/nba/player_vs_opponent?athleteId=${athleteId}&opponentTeamId=${oppId}&limit=${limit}`),
-  projection: (athleteId, oppId=null) => {
+   projection: (athleteId, oppId=null, gameId=null) => {
     const base = `/api/nba/player_projection?athleteId=${athleteId}`;
-    return getJson(oppId ? `${base}&opponentTeamId=${oppId}` : base);
+    const withOpp = oppId ? `${base}&opponentTeamId=${oppId}` : base;
+    return getJson(gameId ? `${withOpp}&gameId=${gameId}` : withOpp);
   },
   assessLine: (payload) => postJson(`/api/nba/assess_line`, payload),
   tracked: (athleteId) => getJson(`/api/nba/tracked?athleteId=${athleteId}`),
   track: (payload) => postJson(`/api/nba/track`, payload),
   settle: (id) => postJson(`/api/nba/settle`, { id }),
 };
+

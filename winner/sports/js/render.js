@@ -91,7 +91,7 @@ export function gameCard(g, onTeamClick){
           ? String(btn.dataset.gamedate).trim()
           : null;
 
-      // ✅ NEW: autofill the Track gameId input when you click a game/team
+      // ✅ autofill the Track gameId input when you click a game/team
       if (els.trackGameId){
         els.trackGameId.value = state.currentGameId || "";
         els.trackGameId.placeholder = state.currentGameId
@@ -143,6 +143,7 @@ export function renderExplanationFromAssess(stat, assess){
   const p50 = (typeof assess.projectionP50 === "number") ? assess.projectionP50 : null;
 
   const meta = assess.meta || {};
+  const injSummary = meta.injSummary || null;
   const minsMu = (typeof meta.minutesMu === "number") ? meta.minutesMu : null;
   const minsSd = (typeof meta.minutesSd === "number") ? meta.minutesSd : null;
   const minsStab = meta.minutesStability || null;
@@ -182,6 +183,10 @@ export function renderExplanationFromAssess(stat, assess){
   if (n != null) parts.push(`• Monte Carlo samples: ${escapeHtml(String(n))}`);
 
   els.explainBody.innerHTML = parts.join("<br/>");
+
+  if (injSummary){
+    parts.push(`• Injuries: <b>${escapeHtml(String(injSummary))}</b>`);
+  }
 }
 
 export function drawTrackingChart(rows){

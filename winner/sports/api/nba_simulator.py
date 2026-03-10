@@ -102,12 +102,10 @@ def _binomial(n: int, p: float) -> int:
     p = clamp(float(p), 0.0, 1.0)
     if n <= 0:
         return 0
-    # fast paths
     if p <= 0.0:
         return 0
     if p >= 1.0:
         return n
-    # n is small (attempts), simple loop is fine
     c = 0
     r = random.random
     for _ in range(n):
@@ -198,11 +196,8 @@ def _build_attempt_rate_model(
     season_shoot: Optional[Dict[str, Optional[float]]],
     season_minutes: Optional[float],
     last_games: List[dict],
-    key_att: str,  # "fga" | "tpa" | "fta"
+    key_att: str,
 ) -> Tuple[float, float, float]:
-    """
-    Returns (att_per_min_mean, rel_sd, alpha) for attempts.
-    """
     min_season = safe_float(season_minutes)
     att_season = safe_float((season_shoot or {}).get(key_att)) if season_shoot else None
     r_season = None
@@ -228,7 +223,6 @@ def _build_attempt_rate_model(
     elif r_recent is None:
         r_mean = float(r_season)
     else:
-        # attempts stabilize quicker than points → allow a little more recent weight
         w_recent = clamp(total_min / 260.0, 0.25, 0.60)
         r_mean = (1 - w_recent) * float(r_season) + w_recent * float(r_recent)
 
@@ -253,11 +247,6 @@ def _build_attempt_rate_model(
 
 
 def _blend_pct(season_pct: Optional[float], recent_pct: Optional[float], n_recent_att: float) -> float:
-    """
-    Conservative blend of shooting % with shrinkage toward season.
-    If season pct missing, fallback to recent; if both missing, use generic priors.
-    """
-    # generic priors
     if season_pct is None and recent_pct is None:
         return 0.47
     if season_pct is None:
@@ -265,7 +254,6 @@ def _blend_pct(season_pct: Optional[float], recent_pct: Optional[float], n_recen
     if recent_pct is None:
         return clamp(float(season_pct), 0.20, 0.85)
 
-    # shrink recent toward season based on volume
     w_recent = clamp(n_recent_att / 120.0, 0.15, 0.45)
     return clamp((1 - w_recent) * float(season_pct) + w_recent * float(recent_pct), 0.20, 0.85)
 
@@ -285,7 +273,6 @@ def _recent_pct_from_games(last_games: List[dict], made_key: str, att_key: str) 
 
 
 def _has_component_shooting(last_games: List[dict]) -> bool:
-    # require at least 5 games with FGA and FTA available
     ok = 0
     for g in last_games:
         if g.get("fga") is not None and g.get("fta") is not None and g.get("tpa") is not None:
@@ -300,16 +287,21 @@ def simulate_props(
     opp_mult: Dict[str, float],
     est_minutes_point: float,
     season_shoot: Optional[Dict[str, Optional[float]]] = None,
+    pace_mult: float = 1.0,
+    minutes_mult: float = 1.0,
     n: int = 10000,
 ) -> Dict:
     """
     Simulates distributions:
       - PTS: component-based model (FGA/3PA/FTA + binomial makes) when data is sufficient
-      - REB/AST: NegBin model on per-minute rates (as before)
+      - REB/AST: NegBin model on per-minute rates
 
-    Returns:
-      projection (p50), distribution bands, samples, diagnostics
+    pace_mult: scales overall game "opportunity" (possessions / attempts)
+    minutes_mult: scales expected minutes (blowout risk / rotations)
     """
+    pace_mult = clamp(float(pace_mult or 1.0), 0.85, 1.20)
+    minutes_mult = clamp(float(minutes_mult or 1.0), 0.80, 1.10)
+
     mu_min, sd_min, stability = build_minutes_distribution(last_games_10, est_minutes_point)
 
     out_samples = {"pts": [], "reb": [], "ast": []}
@@ -318,6 +310,8 @@ def simulate_props(
         "minutesSd": round(sd_min, 2),
         "minutesStability": stability,
         "n": int(n),
+        "paceMult": round(pace_mult, 3),
+        "minutesMult": round(minutes_mult, 3),
         "oppMult": {k: float(opp_mult.get(k, 1.0)) for k in ("pts", "reb", "ast")},
         "engine": {"pts": "direct", "reb": "negbin", "ast": "negbin"},
         "rates": {},
@@ -325,19 +319,16 @@ def simulate_props(
         "shooting": {},
     }
 
-    # --- REB/AST rate models (same as before) ---
     for stat in ("reb", "ast"):
         r_mean, r_rel_sd, alpha = build_rate_model(season_avg, season_minutes, last_games_10, stat)
         diagnostics["rates"][stat] = {"perMinMean": round(r_mean, 6), "relSd": round(r_rel_sd, 4)}
         diagnostics["alpha"][stat] = round(alpha, 4)
 
-    # --- PTS: component model if possible ---
     use_components = _has_component_shooting(last_games_10)
 
     if use_components:
         diagnostics["engine"]["pts"] = "components"
 
-        # attempt rate models
         r_fga, rel_fga, a_fga = _build_attempt_rate_model(season_shoot, season_minutes, last_games_10, "fga")
         r_tpa, rel_tpa, a_tpa = _build_attempt_rate_model(season_shoot, season_minutes, last_games_10, "tpa")
         r_fta, rel_fta, a_fta = _build_attempt_rate_model(season_shoot, season_minutes, last_games_10, "fta")
@@ -349,7 +340,6 @@ def simulate_props(
         diagnostics["alpha"]["tpa"] = round(a_tpa, 4)
         diagnostics["alpha"]["fta"] = round(a_fta, 4)
 
-        # shooting % blend (season % + recent %)
         fg_recent, fg_att = _recent_pct_from_games(last_games_10, "fgm", "fga")
         tp_recent, tp_att = _recent_pct_from_games(last_games_10, "tpm", "tpa")
         ft_recent, ft_att = _recent_pct_from_games(last_games_10, "ftm", "fta")
@@ -375,18 +365,18 @@ def simulate_props(
         }
 
     else:
-        # fallback: direct points model
         r_mean, r_rel_sd, alpha = build_rate_model(season_avg, season_minutes, last_games_10, "pts")
         diagnostics["rates"]["pts"] = {"perMinMean": round(r_mean, 6), "relSd": round(r_rel_sd, 4)}
         diagnostics["alpha"]["pts"] = round(alpha, 4)
 
-    # --- Simulation loop ---
     for _ in range(int(n)):
         mins = _trunc_normal(mu_min, sd_min, 5.0, 44.0)
 
+        # apply minutes multiplier (blowout / rotation)
+        mins = clamp(mins * minutes_mult, 4.0, 44.0)
+
         # PTS
         if use_components:
-            # sample attempt rates
             r_fga = diagnostics["rates"]["fga"]["perMinMean"]
             r_tpa = diagnostics["rates"]["tpa"]["perMinMean"]
             r_fta = diagnostics["rates"]["fta"]["perMinMean"]
@@ -399,16 +389,15 @@ def simulate_props(
             a_tpa = diagnostics["alpha"]["tpa"]
             a_fta = diagnostics["alpha"]["fta"]
 
-            fga_mu = mins * _lognormal_sample_from_mean(r_fga, rel_fga)
-            tpa_mu = mins * _lognormal_sample_from_mean(r_tpa, rel_tpa)
-            fta_mu = mins * _lognormal_sample_from_mean(r_fta, rel_fta)
+            # pace affects attempt opportunity
+            fga_mu = mins * pace_mult * _lognormal_sample_from_mean(r_fga, rel_fga)
+            tpa_mu = mins * pace_mult * _lognormal_sample_from_mean(r_tpa, rel_tpa)
+            fta_mu = mins * pace_mult * _lognormal_sample_from_mean(r_fta, rel_fta)
 
-            # convert means to attempts with overdispersion
             fga = _negbin_gamma_poisson(fga_mu, a_fga)
             tpa = _negbin_gamma_poisson(tpa_mu, a_tpa)
             fta = _negbin_gamma_poisson(fta_mu, a_fta)
 
-            # ensure 3PA <= FGA
             tpa = min(tpa, fga)
             two_pa = max(0, fga - tpa)
 
@@ -416,14 +405,9 @@ def simulate_props(
             p_tp = diagnostics["shooting"]["tp_pct"]
             p_ft = diagnostics["shooting"]["ft_pct"]
 
-            # make 3s and FTs
             tpm = _binomial(tpa, p_tp)
             ftm = _binomial(fta, p_ft)
 
-            # 2PT% derived from FG% and 3PT% (rough but consistent):
-            # FGM = 2PM + 3PM; FG% applies to total FGA.
-            # We'll estimate p2 so expected overall FG% matches:
-            # p_fg*fga ≈ p2*two_pa + p3*tpa
             denom = max(1, two_pa)
             p2 = (p_fg * fga - p_tp * tpa) / denom
             p2 = clamp(p2, 0.25, 0.75)
@@ -433,25 +417,24 @@ def simulate_props(
             pts = float(pts) * float(opp_mult.get("pts", 1.0))
             out_samples["pts"].append(max(0.0, pts))
         else:
-            # direct points fallback
             r_mean = diagnostics["rates"]["pts"]["perMinMean"]
             rel_sd = diagnostics["rates"]["pts"]["relSd"]
             alpha = diagnostics["alpha"]["pts"]
             r_draw = _lognormal_sample_from_mean(r_mean, rel_sd)
-            mu = (mins * r_draw) * float(opp_mult.get("pts", 1.0))
+            mu = (mins * pace_mult * r_draw) * float(opp_mult.get("pts", 1.0))
             out_samples["pts"].append(float(_negbin_gamma_poisson(mu, float(alpha))))
 
-        # REB/AST
         for stat in ("reb", "ast"):
             r_mean = diagnostics["rates"][stat]["perMinMean"]
             rel_sd = diagnostics["rates"][stat]["relSd"]
             alpha = diagnostics["alpha"][stat]
             r_draw = _lognormal_sample_from_mean(r_mean, rel_sd)
-            mu = (mins * r_draw) * float(opp_mult.get(stat, 1.0))
+
+            # rebounds/assists also correlate with pace (more possessions)
+            mu = (mins * pace_mult * r_draw) * float(opp_mult.get(stat, 1.0))
             x = _negbin_gamma_poisson(mu, float(alpha))
             out_samples[stat].append(float(max(0, x)))
 
-    # percentiles
     dist = {}
     proj = {}
     for stat in ("pts", "reb", "ast"):
@@ -478,8 +461,8 @@ def simulate_props(
 def prob_over(samples: List[float], line: float) -> float:
     if not samples:
         return 0.0
-    threshold = float(line) + 0.5
-    cnt = sum(1 for x in samples if x > threshold)
+    threshold = float(line)
+    cnt = sum(1 for x in samples if float(x) > threshold)
     return cnt / len(samples)
 
 

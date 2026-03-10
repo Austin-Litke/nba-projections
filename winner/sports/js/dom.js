@@ -1,3 +1,4 @@
+// winner/sports/js/dom.js
 export const els = {
   games: document.getElementById("games"),
   status: document.getElementById("status"),
@@ -10,6 +11,12 @@ export const els = {
   sideMeta: document.getElementById("sideMeta"),
   roster: document.getElementById("roster"),
   closeSideBtn: document.getElementById("closeSideBtn"),
+
+  // ✅ Team Picks panel (sidebar)
+  teamPicks: document.getElementById("teamPicks"),
+  teamPicksBtn: document.getElementById("teamPicksBtn"),
+  teamPicksStatus: document.getElementById("teamPicksStatus"),
+  teamPicksResults: document.getElementById("teamPicksResults"),
 
   modal: document.getElementById("modal"),
   playerName: document.getElementById("playerName"),
@@ -44,9 +51,8 @@ export const els = {
   trackRows: document.getElementById("trackRows"),
   trackMeta: document.getElementById("trackMeta"),
   trackChart: document.getElementById("trackChart"),
+
   distChart: document.getElementById("distChart"),
   distLegend: document.getElementById("distLegend"),
   distWrap: document.getElementById("distWrap"),
-
-
 };

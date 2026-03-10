@@ -162,7 +162,7 @@ def settle_prediction(pred_id: int) -> Dict[str, Any]:
     actual = float(actuals.get(stat, 0.0))
     p["actual"] = actual
     p["settledAt"] = _now_iso()
-    p["result"] = "over" if actual > (line + 0.5) else "under"
+    p["result"] = "over" if actual > line else "under"
 
     _write_db(db)
     return p

@@ -1,7 +1,13 @@
+// winner/sports/js/state.js
 export const state = {
   currentAthleteId: null,
   currentOpponentTeamId: null,
 
-  // ✅ NEW: last game selected from the scoreboard list
   currentGameId: null,
+  currentGameDateIso: null,
+
+  // ✅ used by Team Picks
+  currentTeamId: null,
+  currentTeamName: null,
+  currentRosterAthletes: [],
 };

@@ -18,11 +18,265 @@ import {
   renderTrackingTable,
 } from "./render.js";
 
+/* =========================
+   TEAM PICKS (Top 2)
+========================= */
+
+let teamPicksWired = false;
+
+function setTeamPicksStatus(msg){
+  if (els.teamPicksStatus) els.teamPicksStatus.textContent = msg;
+}
+function setTeamPicksResults(html){
+  if (els.teamPicksResults) els.teamPicksResults.innerHTML = html;
+}
+
+function fmtOdds(n){
+  if (n == null) return "—";
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "—";
+  return v > 0 ? `+${v}` : `${v}`;
+}
+
+function asyncPool(limit, items, iteratorFn){
+  let i = 0;
+  const results = [];
+  const workers = new Array(Math.max(1, limit)).fill(0).map(async () => {
+    while (i < items.length){
+      const idx = i++;
+      results[idx] = await iteratorFn(items[idx], idx);
+    }
+  });
+  return Promise.all(workers).then(() => results);
+}
+
+async function fetchJsonWithTimeout(url, ms = 8000){
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try{
+    const res = await fetch(url, { signal: ctrl.signal });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function postJsonWithTimeout(url, payload, ms = 12000){
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try{
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function getUdLines(athleteId){
+  const data = await fetchJsonWithTimeout(`/api/nba/underdog_lines?athleteId=${athleteId}`, 8000);
+  return Array.isArray(data.lines) ? data.lines : [];
+}
+
+async function assessLine(athleteId, stat, line){
+  const payload = { athleteId, stat, line };
+  if (state.currentOpponentTeamId) payload.opponentTeamId = Number(state.currentOpponentTeamId);
+  if (state.currentGameId) payload.gameId = String(state.currentGameId);
+  return postJsonWithTimeout(`/api/nba/assess_line`, payload, 12000);
+}
+
+function renderTeamPicks(picks){
+  if (!picks.length){
+    setTeamPicksResults(`<div class="muted small">No picks found (no usable lines/assessments returned).</div>`);
+    return;
+  }
+
+  const html = picks.map(p => {
+    const evTxt = (p.evPerDollar == null) ? "—" : (p.evPerDollar >= 0 ? `+${p.evPerDollar.toFixed(3)}` : p.evPerDollar.toFixed(3));
+    const edgeTxt = (p.edgeVsImplied == null) ? "—" : `${(p.edgeVsImplied >= 0 ? "+" : "")}${(p.edgeVsImplied*100).toFixed(1)}%`;
+    const probTxt = (typeof p.prob === "number") ? `${Math.round(p.prob*100)}%` : "—";
+
+    return `
+      <div class="last5-row">
+        <div class="left">
+          <b>${escapeHtml(p.name)}</b><br/>
+          ${escapeHtml(p.side)} ${escapeHtml(p.line.toFixed(1))} ${escapeHtml(p.stat.toUpperCase())}
+          <span class="muted small"> • proj p50 ${escapeHtml(p.projP50.toFixed(1))}</span>
+        </div>
+        <div class="right">
+          <div><span class="muted small">P</span> ${escapeHtml(probTxt)}</div>
+          <div><span class="muted small">Odds</span> ${escapeHtml(fmtOdds(p.odds))}</div>
+          <div><span class="muted small">Edge</span> ${escapeHtml(edgeTxt)}</div>
+          <div><span class="muted small">EV/$</span> ${escapeHtml(evTxt)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  setTeamPicksResults(html);
+}
+
+async function computeTopPicksTop2(){
+  // immediate feedback so you know the click fired
+  const roster = Array.isArray(state.currentRosterAthletes) ? state.currentRosterAthletes : [];
+  setTeamPicksStatus(`Clicked • rosterCount=${roster.length} • fetching lines…`);
+  setTeamPicksResults(`<div class="muted small">Working…</div>`);
+
+  if (!roster.length){
+    setTeamPicksStatus("Pick a team first (open a roster), then click Top 2.");
+    setTeamPicksResults("");
+    return;
+  }
+
+  if (els.teamPicksBtn) els.teamPicksBtn.disabled = true;
+
+  try{
+    // 1) Fetch lines for each athlete (skip slow/failing players)
+    const lineRows = await asyncPool(4, roster, async (p) => {
+      try{
+        const lines = await getUdLines(p.id);
+        return { p, lines };
+      } catch (e){
+        return { p, lines: [], err: e?.message || String(e) };
+      }
+    });
+
+    let totalLines = 0;
+    const jobs = [];
+    for (const row of lineRows){
+      const lines = row.lines || [];
+      for (const l of lines){
+        if (!l?.statKey || typeof l?.line !== "number") continue;
+        
+        if (String(l.statKey).toLowerCase() !== "pts") continue;
+        jobs.push({ player: row.p, lineObj: l });
+        totalLines += 1;
+      }
+    }
+
+    if (!jobs.length){
+      setTeamPicksStatus(
+        `No usable UD PTS/REB/AST lines for this roster. (Tip: confirm /api/nba/underdog_lines works for a few players.)`
+      );
+      setTeamPicksResults("");
+      return;
+    }
+
+    setTeamPicksStatus(`Found ${jobs.length} lines • assessing…`);
+
+    // 2) Assess each job (skip slow/failing assessments)
+    const assessed = await asyncPool(3, jobs, async (job) => {
+      const { player, lineObj } = job;
+      const stat = lineObj.statKey;
+      const line = lineObj.line;
+
+      try{
+        const a = await assessLine(player.id, stat, line);
+
+        const probOver = (typeof a.probOver === "number") ? a.probOver : null;
+        if (probOver == null) return null;
+
+        const projP50 = (typeof a.projectionP50 === "number")
+          ? a.projectionP50
+          : (typeof a.fairLine === "number" ? a.fairLine : line);
+
+        // pick best side via EV if odds exist, otherwise fallback score
+        const overOdds = lineObj.overOdds;
+        const underOdds = lineObj.underOdds;
+
+        function scoreSide(prob, odds){
+          let evPerDollar = null;
+          let edgeVsImplied = null;
+
+          if (odds != null && Number.isFinite(Number(odds))){
+            const implied = impliedProbFromAmerican(Number(odds));
+            const payout = netPayoutPerDollar(Number(odds));
+            if (implied != null && payout != null){
+              evPerDollar = (prob * payout) - (1 - prob);
+              edgeVsImplied = prob - implied;
+            }
+          }
+
+          const score = (evPerDollar != null) ? evPerDollar : (prob - 0.5);
+
+          return { evPerDollar, edgeVsImplied, score };
+        }
+
+        const over = scoreSide(probOver, overOdds);
+        const under = scoreSide(1 - probOver, underOdds);
+
+        const pickOver = over.score >= under.score;
+
+        return {
+          athleteId: player.id,
+          name: player.name,
+          stat,
+          line,
+          side: pickOver ? "OVER" : "UNDER",
+          prob: pickOver ? probOver : (1 - probOver),
+          odds: pickOver ? (overOdds ?? null) : (underOdds ?? null),
+          evPerDollar: pickOver ? over.evPerDollar : under.evPerDollar,
+          edgeVsImplied: pickOver ? over.edgeVsImplied : under.edgeVsImplied,
+          projP50,
+          score: pickOver ? over.score : under.score
+        };
+      } catch {
+        return null;
+      }
+    });
+
+    const picks = assessed
+      .filter(Boolean)
+      .sort((a,b) => (b.score ?? -999) - (a.score ?? -999))
+      .slice(0, 2);
+
+    setTeamPicksStatus(`Top ${picks.length} picks for ${state.currentTeamName || "team"} • opponent ${state.currentOpponentTeamId || "—"}`);
+    renderTeamPicks(picks);
+  } catch (e){
+    setTeamPicksStatus(`Team picks failed: ${e?.message || e}`);
+    setTeamPicksResults("");
+  } finally {
+    if (els.teamPicksBtn) els.teamPicksBtn.disabled = false;
+  }
+}
+
+function wireTeamPicks(){
+  if (teamPicksWired) return;
+  if (!els.teamPicksBtn || !els.teamPicksStatus || !els.teamPicksResults) return;
+
+  teamPicksWired = true;
+  els.teamPicksBtn.textContent = "Top 2";
+  els.teamPicksBtn.addEventListener("click", () => {
+    computeTopPicksTop2();
+  });
+}
+
+/* =========================
+   EXISTING WORKING FEATURES
+========================= */
+
 export async function loadRoster(teamId, teamName, loadPlayer){
   openSide(true);
   els.sideTitle.textContent = `${teamName} — Roster`;
   els.sideMeta.textContent = "Loading roster…";
   clearRoster();
+
+  // set context for team picks
+  state.currentTeamId = teamId;
+  state.currentTeamName = teamName;
+  state.currentRosterAthletes = [];
+
+  wireTeamPicks();
+  setTeamPicksStatus(`Click “Top 2” to rank picks for ${teamName}.`);
+  setTeamPicksResults("");
 
   try{
     const data = await api.roster(teamId);
@@ -44,6 +298,12 @@ export async function loadRoster(teamId, teamName, loadPlayer){
     }
 
     els.sideMeta.textContent = `${athletes.length} players — click a player`;
+
+    state.currentRosterAthletes = athletes.map(p => {
+      const id = p.id || p.athlete?.id;
+      const fullName = p.fullName || p.displayName || p.athlete?.displayName || "Player";
+      return id ? ({ id: String(id), name: fullName }) : null;
+    }).filter(Boolean);
 
     for (const p of athletes){
       const id = p.id || p.athlete?.id;
@@ -106,7 +366,7 @@ export async function loadProjection(athleteId){
   if (els.projNote) els.projNote.textContent = "Loading projection…";
 
   try{
-    const data = await api.projection(athleteId, state.currentOpponentTeamId);
+    const data = await api.projection(athleteId, state.currentOpponentTeamId, state.currentGameId);
     const p = data.projection || {};
     const meta = data.meta || {};
 
@@ -141,6 +401,7 @@ export async function assessManualLine(){
   try{
     const payload = { athleteId: state.currentAthleteId, stat, line };
     if (state.currentOpponentTeamId) payload.opponentTeamId = Number(state.currentOpponentTeamId);
+    if (state.currentGameId) payload.gameId = String(state.currentGameId);
 
     const data = await api.assessLine(payload);
 
@@ -230,35 +491,32 @@ export async function trackCurrent(){
     return;
   }
 
-  // ✅ NEW: prefer typed gameId, but fallback to selected scoreboard gameId
   const typedGameId = (els.trackGameId?.value || "").trim();
   const gameId = typedGameId || state.currentGameId || null;
-
-  // ✅ NEW: also carry through the selected game date if we have it
   const gameDate = state.currentGameDateIso || null;
 
   try{
     const assessPayload = { athleteId: state.currentAthleteId, stat, line };
     if (state.currentOpponentTeamId) assessPayload.opponentTeamId = Number(state.currentOpponentTeamId);
 
-    const assess = await api.assessLine(assessPayload);
+    const assessRes = await api.assessLine(assessPayload);
 
     const payload = {
       athleteId: state.currentAthleteId,
       stat,
       line,
-      probOver: assess.probOver,
-      fairLine: assess.fairLine,
-      projectionP50: assess.projectionP50,
-      opponentTeamId: assess.meta?.opponentTeamId ?? (state.currentOpponentTeamId ? Number(state.currentOpponentTeamId) : null),
+      probOver: assessRes.probOver,
+      fairLine: assessRes.fairLine,
+      projectionP50: assessRes.projectionP50,
+      opponentTeamId: assessRes.meta?.opponentTeamId ?? (state.currentOpponentTeamId ? Number(state.currentOpponentTeamId) : null),
       gameId,
       gameDate,
       meta: {
-        minutesMu: assess.meta?.minutesMu,
-        minutesSd: assess.meta?.minutesSd,
-        minutesStability: assess.meta?.minutesStability,
-        ptsEngine: assess.meta?.ptsEngine,
-        nSamples: assess.meta?.nSamples,
+        minutesMu: assessRes.meta?.minutesMu,
+        minutesSd: assessRes.meta?.minutesSd,
+        minutesStability: assessRes.meta?.minutesStability,
+        ptsEngine: assessRes.meta?.ptsEngine,
+        nSamples: assessRes.meta?.nSamples,
       }
     };
 
@@ -284,7 +542,6 @@ export async function loadPlayer(athleteId, name){
   if (els.assessResult) els.assessResult.textContent = "Enter a line and press Assess.";
   if (els.explainBody) els.explainBody.textContent = "Assess a line to see edge + model inputs.";
 
-  // ✅ NEW: if a game was selected, show the auto gameId in the Track input
   if (els.trackGameId){
     els.trackGameId.value = state.currentGameId || "";
   }

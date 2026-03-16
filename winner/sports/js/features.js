@@ -93,13 +93,17 @@ async function assessLine(athleteId, stat, line){
   return postJsonWithTimeout(`/api/nba/assess_line`, payload, 12000);
 }
 
-function renderTeamPicks(picks){
+function renderPickSection(title, picks){
   if (!picks.length){
-    setTeamPicksResults(`<div class="muted small">No picks found (no usable lines/assessments returned).</div>`);
-    return;
+    return `
+      <div class="player-section">
+        <h3>${escapeHtml(title)}</h3>
+        <div class="muted small">No picks found.</div>
+      </div>
+    `;
   }
 
-  const html = picks.map(p => {
+  const rows = picks.map(p => {
     const evTxt = (p.evPerDollar == null) ? "—" : (p.evPerDollar >= 0 ? `+${p.evPerDollar.toFixed(3)}` : p.evPerDollar.toFixed(3));
     const edgeTxt = (p.edgeVsImplied == null) ? "—" : `${(p.edgeVsImplied >= 0 ? "+" : "")}${(p.edgeVsImplied*100).toFixed(1)}%`;
     const probTxt = (typeof p.prob === "number") ? `${Math.round(p.prob*100)}%` : "—";
@@ -120,6 +124,20 @@ function renderTeamPicks(picks){
       </div>
     `;
   }).join("");
+
+  return `
+    <div class="player-section">
+      <h3>${escapeHtml(title)}</h3>
+      ${rows}
+    </div>
+  `;
+}
+
+function renderTeamPicks(topOverall, topOver){
+  const html =
+    `<div class="muted small">DEBUG NEW RENDER</div>` +
+    renderPickSection("Top 2 Overall", topOverall) +
+    renderPickSection("Best Over", topOver);
 
   setTeamPicksResults(html);
 }
@@ -233,13 +251,21 @@ async function computeTopPicksTop2(){
       }
     });
 
-    const picks = assessed
-      .filter(Boolean)
-      .sort((a,b) => (b.score ?? -999) - (a.score ?? -999))
-      .slice(0, 2);
+      const allPicks = assessed
+        .filter(Boolean)
+        .sort((a,b) => (b.score ?? -999) - (a.score ?? -999));
 
-    setTeamPicksStatus(`Top ${picks.length} picks for ${state.currentTeamName || "team"} • opponent ${state.currentOpponentTeamId || "—"}`);
-    renderTeamPicks(picks);
+      const topOverall = allPicks.slice(0, 2);
+
+      const topOver = allPicks
+        .filter(p => p.side === "OVER")
+        .slice(0, 1);
+
+      setTeamPicksStatus(
+        `Top ${topOverall.length} overall • best over ${topOver.length ? "found" : "not found"} • ${state.currentTeamName || "team"} • opponent ${state.currentOpponentTeamId || "—"}`
+      );
+
+      renderTeamPicks(topOverall, topOver);
   } catch (e){
     setTeamPicksStatus(`Team picks failed: ${e?.message || e}`);
     setTeamPicksResults("");

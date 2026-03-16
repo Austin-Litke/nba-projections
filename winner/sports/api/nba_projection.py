@@ -78,7 +78,7 @@ def build_projection(season_avg: dict, season_minutes: Optional[float], last_gam
         mins_stability = "Recent"
     else:
         # slightly more weight on recent minutes (helps stars w/ current role)
-        est_min = 0.75 * last_min + 0.25 * min_season
+        est_min = 0.82 * last_min + 0.18 * min_season
         mins_stability = "Blend"
 
     est_min = clamp(est_min, 10.0, 42.0)
@@ -120,12 +120,12 @@ def build_projection(season_avg: dict, season_minutes: Optional[float], last_gam
         n_last = len(last_games) if isinstance(last_games, list) else 0
 
         # base weights: more recent by default
-        w_last = 0.55 if n_last >= 5 else 0.40
+        w_last = 0.65 if n_last >= 5 else 0.48
         w_season = 1.0 - w_last
 
         # If season minutes are missing/weak, trust recent more
         if min_season is None:
-            w_last = min(0.70, w_last + 0.10)
+            w_last = min(0.80, w_last + 0.10)
             w_season = 1.0 - w_last
 
         return (w_season * r_season) + (w_last * r_last)
@@ -150,14 +150,14 @@ def build_projection(season_avg: dict, season_minutes: Optional[float], last_gam
             return 1.0
 
         raw = vs_avg / season_val  # ratio
-        raw = clamp(raw, 0.80, 1.20)
+        raw = clamp(raw, 0.78, 1.24)
 
         # shrink factor: with 0 games -> 0, with 6+ games -> ~0.7
         n = len(vs_games)
-        shrink = clamp(n / 8.0, 0.0, 0.70)  # max 70% of the raw signal
+        shrink = clamp(n / 7.0, 0.0, 0.78)  # max 70% of the raw signal
         mult = (1.0 - shrink) * 1.0 + shrink * raw
 
-        return clamp(mult, 0.90, 1.10)  # narrower clamp avoids systemic lows
+        return clamp(mult, 0.88, 1.14)  # narrower clamp avoids systemic lows
 
     mult_pts = opponent_multiplier(vs_games, "pts", season_pts)
     mult_reb = opponent_multiplier(vs_games, "reb", season_reb)

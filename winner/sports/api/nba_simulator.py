@@ -167,7 +167,8 @@ def build_rate_model(season_avg: Dict, season_minutes: Optional[float], last_gam
     elif r_recent is None:
         r_mean = float(r_season)
     else:
-        w_recent = clamp(total_min / 300.0, 0.20, 0.55)
+        # lean more into recent role / current form
+        w_recent = clamp(total_min / 220.0, 0.30, 0.72)
         r_mean = (1 - w_recent) * float(r_season) + w_recent * float(r_recent)
 
     r_mean = max(0.0, r_mean)
@@ -223,7 +224,8 @@ def _build_attempt_rate_model(
     elif r_recent is None:
         r_mean = float(r_season)
     else:
-        w_recent = clamp(total_min / 260.0, 0.25, 0.60)
+        # recent attempts should matter more for changing usage/role
+        w_recent = clamp(total_min / 210.0, 0.35, 0.78)
         r_mean = (1 - w_recent) * float(r_season) + w_recent * float(r_recent)
 
     r_mean = max(0.0, r_mean)
@@ -254,7 +256,7 @@ def _blend_pct(season_pct: Optional[float], recent_pct: Optional[float], n_recen
     if recent_pct is None:
         return clamp(float(season_pct), 0.20, 0.85)
 
-    w_recent = clamp(n_recent_att / 120.0, 0.15, 0.45)
+    w_recent = clamp(n_recent_att / 90.0, 0.20, 0.60)
     return clamp((1 - w_recent) * float(season_pct) + w_recent * float(recent_pct), 0.20, 0.85)
 
 
@@ -448,7 +450,7 @@ def simulate_props(
             "mean": round((sum(arr) / len(arr)) if arr else 0.0, 2),
         }
         dist[stat] = d
-        proj[stat] = d["p50"]
+        proj[stat] = round(0.35 * d["p50"] + 0.65 * d["mean"], 1)
 
     return {
         "projection": proj,

@@ -51,6 +51,7 @@ def injury_adjust_for_event(
 
     dbg = {
         "used": False,
+        "summary": None,
         "athleteTeamId": athlete_team_id,
         "inactiveTeammates": [],
         "missing": {"minutes": 0.0, "creationPerMin": 0.0},
@@ -81,6 +82,13 @@ def injury_adjust_for_event(
     if not inactive:
         dbg["notes"].append("No inactive teammates detected for this event/team.")
         return 0.0, {"pts": 1.0, "reb": 1.0, "ast": 1.0}, dbg
+    # Human-readable summary for UI/debug
+        names = []
+        for r in inactive:
+            nm = str(r.get("name") or "Unknown")
+            st = str(r.get("status") or "")
+            names.append(f"{nm} ({st})")
+        dbg["summary"] = ", ".join(names[:6]) if names else None
 
     # Cap for speed
     inactive = inactive[:max_teammates]
@@ -159,8 +167,8 @@ def injury_adjust_for_event(
 
     # share based on role and minutes
     # (works surprisingly well without full roster minutes)
-    base_share = clamp(est / 240.0, 0.04, 0.20)  # 4%..20% of team minutes
-    role_boost = 1.20 if role == "starter" else (1.00 if role == "rotation" else 0.75)
+    base_share = clamp(est / 220.0, 0.05, 0.24)
+    role_boost = 1.30 if role == "starter" else (1.05 if role == "rotation" else 0.75)
 
     minutes_add = missing_minutes * base_share * role_boost
 
@@ -183,9 +191,9 @@ def injury_adjust_for_event(
     intensity = clamp(missing_minutes / 60.0, 0.10, 1.00)
 
     # Stat-specific multipliers
-    pts_mult = 1.0 + clamp(0.16 * intensity * absorb, 0.0, 0.18)
-    ast_mult = 1.0 + clamp(0.22 * intensity * absorb, 0.0, 0.25)
-    reb_mult = 1.0 + clamp(0.08 * intensity, 0.0, 0.10)
+    pts_mult = 1.0 + clamp(0.22 * intensity * absorb, 0.0, 0.28)
+    ast_mult = 1.0 + clamp(0.30 * intensity * absorb, 0.0, 0.35)
+    reb_mult = 1.0 + clamp(0.10 * intensity, 0.0, 0.14)
 
     usage_mult = {"pts": round(pts_mult, 4), "reb": round(reb_mult, 4), "ast": round(ast_mult, 4)}
 

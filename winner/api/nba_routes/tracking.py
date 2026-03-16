@@ -31,6 +31,9 @@ from sports.api.nba_simulator import prob_over, fair_line, alt_lines_probs
 from api.nba_helpers.env_adjust import pace_and_blowout_from_games
 from api.nba_helpers.sim_utils import call_simulate_props
 
+def mean_of_samples(samples):
+    vals = [float(x) for x in (samples or []) if isinstance(x, (int, float))]
+    return round(sum(vals) / len(vals), 2) if vals else 0.0
 
 def get_tracked(qs: dict):
     aid = (qs.get("athleteId", [""])[0] or "").strip()
@@ -167,10 +170,11 @@ def post_assess_line(handler, *, nba_simulator_mod):
     samples = (sim.get("samples") or {}).get(stat, [])
     p_over = prob_over(samples, line_f)
     p_under = 1.0 - p_over
-    fair = fair_line(samples)
+    fair = fair_line(samples)  # median / p50
     alts = alt_lines_probs(samples, stat, center_line=line_f)
 
-    proj = (sim.get("projection") or {}).get(stat, 0.0)
+    proj_p50 = (sim.get("projection") or {}).get(stat, 0.0)
+    proj_mean = mean_of_samples(samples)
     dist = (sim.get("distribution") or {}).get(stat, {})
 
     return 200, {
@@ -180,7 +184,8 @@ def post_assess_line(handler, *, nba_simulator_mod):
         "probOver": round(p_over, 4),
         "probUnder": round(p_under, 4),
         "fairLine": fair,
-        "projectionP50": proj,
+        "projectionP50": proj_p50,
+        "projectionMean": proj_mean,
         "band": dist,
         "altLines": alts,
         "meta": {
@@ -189,6 +194,7 @@ def post_assess_line(handler, *, nba_simulator_mod):
             "webStatsUrl": web_url,
             "paceMult": pace_mult,
             "minutesMult": minutes_mult,
+            "projectionMean": proj_mean,
             "injMinutesAdd": round(float(inj_minutes_add), 2),
             "injUsageMult": inj_usage_mult,
             "injSummary": (inj_dbg.get("summary") if isinstance(inj_dbg, dict) else None),

@@ -80,10 +80,14 @@ def pace_and_blowout_from_games(vs_games: list, last_games_10: list) -> tuple[fl
     avg_margin = (sum(margins) / len(margins)) if margins else 8.0
 
     raw_pace = avg_total / BASELINE_TOTAL
-    pace_mult = clamp(0.65 * 1.0 + 0.35 * raw_pace, 0.95, 1.05)
+    pace_mult = clamp(0.45 * 1.0 + 0.55 * raw_pace, 0.94, 1.08)
 
-    minutes_mult = 1.0 - max(0.0, (avg_margin - 8.0)) * 0.004
-    minutes_mult = clamp(minutes_mult, 0.96, 1.03)
+    if avg_margin > 8.0:
+        minutes_mult = 1.0 - (avg_margin - 8.0) * 0.004
+    else:
+        minutes_mult = 1.0 + (8.0 - avg_margin) * 0.0025
+
+    minutes_mult = clamp(minutes_mult, 0.96, 1.04)
 
     dbg = {
         "avgTotalPts": round(avg_total, 2),

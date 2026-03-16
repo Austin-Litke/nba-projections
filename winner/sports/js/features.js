@@ -323,33 +323,60 @@ export async function loadRoster(teamId, teamName, loadPlayer){
       return;
     }
 
-    els.sideMeta.textContent = `${athletes.length} players — click a player`;
-
-    state.currentRosterAthletes = athletes.map(p => {
-      const id = p.id || p.athlete?.id;
-      const fullName = p.fullName || p.displayName || p.athlete?.displayName || "Player";
-      return id ? ({ id: String(id), name: fullName }) : null;
-    }).filter(Boolean);
-
-    for (const p of athletes){
+    // normalize roster first
+    const normalized = athletes.map(p => {
       const id = p.id || p.athlete?.id;
       const fullName = p.fullName || p.displayName || p.athlete?.displayName || "Player";
       const pos = p.position?.abbreviation || p.athlete?.position?.abbreviation || "";
       const jersey = p.jersey || p.athlete?.jersey || "";
 
+      return id ? {
+        id: String(id),
+        name: fullName,
+        pos,
+        jersey,
+      } : null;
+    }).filter(Boolean);
+
+    // only keep players who have active lines
+    const withLines = await asyncPool(4, normalized, async (p) => {
+      try{
+        const lines = await getUdLines(p.id);
+        const usable = Array.isArray(lines) && lines.length > 0;
+        return usable ? { ...p, lines } : null;
+      } catch {
+        return null;
+      }
+    });
+
+    const filtered = withLines.filter(Boolean);
+
+    if (!filtered.length){
+      els.sideMeta.textContent = "No active Underdog lines found for this team.";
+      state.currentRosterAthletes = [];
+      return;
+    }
+
+    els.sideMeta.textContent = `${filtered.length} players with active lines — click a player`;
+
+    state.currentRosterAthletes = filtered.map(p => ({
+      id: p.id,
+      name: p.name,
+    }));
+
+    for (const p of filtered){
       const row = document.createElement("div");
       row.className = "player";
       row.innerHTML = `
         <div>
-          <div class="pName">${escapeHtml(fullName)}</div>
-          <div class="pMeta">${escapeHtml([pos, jersey ? `#${jersey}` : ""].filter(Boolean).join(" • "))}</div>
+          <div class="pName">${escapeHtml(p.name)}</div>
+          <div class="pMeta">${escapeHtml([p.pos, p.jersey ? `#${p.jersey}` : ""].filter(Boolean).join(" • "))}</div>
         </div>
         <div class="pMeta">➜</div>
       `;
 
       row.addEventListener("click", async () => {
-        if (!id) return;
-        await loadPlayer(id, fullName);
+        await loadPlayer(p.id, p.name);
       });
 
       els.roster.appendChild(row);
@@ -358,7 +385,6 @@ export async function loadRoster(teamId, teamName, loadPlayer){
     els.sideMeta.textContent = `Could not load roster. (${e.message})`;
   }
 }
-
 export async function loadLast5(athleteId){
   if (!els.last5) return;
   els.last5.innerHTML = `<div class="muted">Loading last 5 games…</div>`;

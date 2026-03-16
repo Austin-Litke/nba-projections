@@ -417,6 +417,9 @@ def simulate_props(
 
             pts = 2 * two_pm + 3 * tpm + 1 * ftm
             pts = float(pts) * float(opp_mult.get("pts", 1.0))
+            
+            # small offensive calibration bump
+            pts = pts * 1.04
             out_samples["pts"].append(max(0.0, pts))
         else:
             r_mean = diagnostics["rates"]["pts"]["perMinMean"]
@@ -424,7 +427,9 @@ def simulate_props(
             alpha = diagnostics["alpha"]["pts"]
             r_draw = _lognormal_sample_from_mean(r_mean, rel_sd)
             mu = (mins * pace_mult * r_draw) * float(opp_mult.get("pts", 1.0))
-            out_samples["pts"].append(float(_negbin_gamma_poisson(mu, float(alpha))))
+            pts_val = float(_negbin_gamma_poisson(mu, float(alpha)))
+            pts_val = pts_val * 1.04
+            out_samples["pts"].append(pts_val)
 
         for stat in ("reb", "ast"):
             r_mean = diagnostics["rates"][stat]["perMinMean"]

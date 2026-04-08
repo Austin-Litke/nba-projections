@@ -1,10 +1,9 @@
 # api/nba_routes/player.py
 from __future__ import annotations
 
-import sports.api.nba_simulator as nba_simulator_mod  # only for default import; router passes actual module too
-from api.nba_routes.injuries import extract_event_injuries
+import sports.api.nba_simulator as nba_simulator_mod
+from api.nba_routes.injuries import extract_event_injuries, extract_event_teams
 from api.nba_helpers.injury_adjust import injury_adjust_for_event
-from sports.api.nba_client import ESPN_CORE_ATHLETE  # if not already imported
 
 from sports.api.nba_client import (
     http_get,
@@ -133,19 +132,13 @@ def get_player_projection(qs: dict, *, nba_simulator_mod_passed=None):
 
     athlete_id_int = int(athlete_id)
     season_year = get_current_season_year()
-    
-    athlete_team_id = None
-    try:
-        core_url = ESPN_CORE_ATHLETE.format(athleteId=athlete_id_int)
-        core = safe_json_load(http_get(core_url))
-        team = core.get("team") or {}
-        tid = team.get("id")
-        athlete_team_id = int(tid) if str(tid).isdigit() else None
-    except Exception:
-        athlete_team_id = None
-    
+
     gid = (qs.get("gameId", [""])[0] or "").strip()
     game_id = gid if gid.isdigit() else ""
+
+    opp_id_int = None
+    if opp_id and str(opp_id).strip().isdigit():
+        opp_id_int = int(str(opp_id).strip())
 
     web_url = ESPN_WEB_STATS.format(athleteId=athlete_id_int)
     web = safe_json_load(http_get(web_url))
@@ -158,10 +151,6 @@ def get_player_projection(qs: dict, *, nba_simulator_mod_passed=None):
     last_games_10, dbg10 = build_last_games(athlete_id_int, limit=10)
     last_games_10, enrich_dbg = enrich_games_with_summary(last_games_10, athlete_id_int)
 
-    opp_id_int = None
-    if opp_id and str(opp_id).strip().isdigit():
-        opp_id_int = int(str(opp_id).strip())
-
     vs_games = []
     if opp_id_int is not None:
         vs_games, _dbgvs = build_vs_opponent(athlete_id_int, opp_id_int, limit=25)
@@ -170,24 +159,80 @@ def get_player_projection(qs: dict, *, nba_simulator_mod_passed=None):
         except Exception:
             pass
 
-    base = build_projection(season_avg, season_minutes, last_games_5, vs_games)
+    # ---------------------------
+    # Resolve athlete team id
+    # ---------------------------
+    athlete_team_id = None
+    athlete_team_id_source = "none"
+
+    try:
+        core_url = ESPN_CORE_ATHLETE.format(athleteId=athlete_id_int)
+        core = safe_json_load(http_get(core_url))
+        team = core.get("team") or {}
+        tid = team.get("id")
+        if str(tid).isdigit():
+            athlete_team_id = int(tid)
+            athlete_team_id_source = "core"
+    except Exception:
+        pass
+
+    if athlete_team_id is None:
+        try:
+            candidate_paths = [
+                ((web or {}).get("team") or {}).get("id"),
+                (((web or {}).get("athlete") or {}).get("team") or {}).get("id"),
+                (((web or {}).get("player") or {}).get("team") or {}).get("id"),
+            ]
+            for tid in candidate_paths:
+                if str(tid).isdigit():
+                    athlete_team_id = int(tid)
+                    athlete_team_id_source = "web_stats"
+                    break
+        except Exception:
+            pass
+
+    base = build_projection(
+        season_avg,
+        season_minutes,
+        last_games_5,
+        vs_games,
+        season_shoot=season_shoot,
+    )
     meta = base.get("meta") or {}
     est_min = float(meta.get("estMinutes") or 32.0)
     opp_adj = (meta.get("oppAdj") or {"pts": 1.0, "reb": 1.0, "ast": 1.0})
 
-    # ✅ NEW: pace + blowout adjustment multipliers
-    pace_mult, minutes_mult, env_dbg = pace_and_blowout_from_games(vs_games, last_games_10)
-    
-    # ---------------------------
-    # Injury adjustment (event-aware)
-    # ---------------------------
     inj_minutes_add = 0.0
     inj_usage_mult = {"pts": 1.0, "reb": 1.0, "ast": 1.0}
     inj_dbg = {"used": False, "notes": ["no gameId"]}
+    event_rows = []
+
+    own_team_out = []
+    opp_team_out = []
+    own_team_impact = 0.0
+    opp_team_impact = 0.0
 
     if game_id:
         try:
-            event_rows = extract_event_injuries(int(game_id))
+            event_rows = extract_event_injuries(int(game_id)) or []
+
+            if athlete_team_id is None and opp_id_int is not None and game_id:
+                try:
+                    event_teams = extract_event_teams(int(game_id)) or []
+                    event_team_ids = []
+                    for t in event_teams:
+                        tid = t.get("teamId")
+                        if str(tid).isdigit():
+                            event_team_ids.append(int(tid))
+
+                    if len(event_team_ids) == 2 and opp_id_int in event_team_ids:
+                        other = [t for t in event_team_ids if t != opp_id_int]
+                        if other:
+                            athlete_team_id = int(other[0])
+                            athlete_team_id_source = "event_competitors_other_team"
+                except Exception:
+                    pass
+
             inj_minutes_add, inj_usage_mult, inj_dbg = injury_adjust_for_event(
                 athlete_id=athlete_id_int,
                 athlete_team_id=athlete_team_id,
@@ -195,8 +240,103 @@ def get_player_projection(qs: dict, *, nba_simulator_mod_passed=None):
                 est_minutes=est_min,
                 last_games_10=last_games_10,
             )
+
+            own_team_impact = float(
+                (((inj_dbg or {}).get("result") or {}).get("teamImpactScore")) or 0.0
+            )
+
+            if athlete_team_id is not None:
+                for r in event_rows:
+                    if str(r.get("teamId")) != str(athlete_team_id):
+                        continue
+                    status = str(r.get("status") or "")
+                    if status.strip().lower() not in ("out", "suspension", "doubtful", "questionable", "day-to-day", "dtd"):
+                        continue
+                    own_team_out.append({
+                        "athleteId": r.get("athleteId"),
+                        "name": r.get("name"),
+                        "status": status,
+                    })
+
+            if opp_id_int is not None:
+                for r in event_rows:
+                    if str(r.get("teamId")) != str(opp_id_int):
+                        continue
+                    status = str(r.get("status") or "")
+                    if status.strip().lower() not in ("out", "suspension", "doubtful", "questionable", "day-to-day", "dtd"):
+                        continue
+                    opp_team_out.append({
+                        "athleteId": r.get("athleteId"),
+                        "name": r.get("name"),
+                        "status": status,
+                    })
+
+                def _status_weight_local(status: str) -> float:
+                    s = (status or "").strip().lower()
+                    if s in ("out", "suspension"):
+                        return 1.0
+                    if s == "doubtful":
+                        return 0.75
+                    if s == "questionable":
+                        return 0.40
+                    if s in ("day-to-day", "dtd"):
+                        return 0.20
+                    return 0.0
+
+                opp_team_impact = 0.0
+                for r in event_rows:
+                    if str(r.get("teamId")) != str(opp_id_int):
+                        continue
+                    w = _status_weight_local(str(r.get("status") or ""))
+                    if w <= 0:
+                        continue
+
+                    try:
+                        other_id = int(r.get("athleteId"))
+                    except Exception:
+                        continue
+
+                    try:
+                        other_games, _other_dbg = build_last_games(other_id, limit=10)
+                    except Exception:
+                        other_games = []
+
+                    avg_min = 0.0
+                    mins = [float(g.get("min")) for g in other_games if isinstance(g.get("min"), (int, float))]
+                    if mins:
+                        avg_min = sum(mins) / len(mins)
+
+                    creation_vals = []
+                    creation_mins = []
+                    for g in other_games:
+                        gm = g.get("min")
+                        pts = g.get("pts")
+                        ast = g.get("ast")
+                        if not isinstance(gm, (int, float)) or gm <= 0:
+                            continue
+                        if not isinstance(pts, (int, float)) and not isinstance(ast, (int, float)):
+                            continue
+                        cre = float(pts or 0) + 1.6 * float(ast or 0)
+                        creation_vals.append(cre)
+                        creation_mins.append(float(gm))
+
+                    cre_per_min = (sum(creation_vals) / sum(creation_mins)) if sum(creation_mins) > 0 else 0.0
+                    opp_team_impact += (w * avg_min) / 14.0 + (w * cre_per_min * 1.65)
+
+                opp_team_impact = max(0.0, min(12.0, opp_team_impact))
+
         except Exception as e:
             inj_dbg = {"used": False, "error": str(e), "notes": ["injury adjust failed"]}
+
+    pace_mult, minutes_mult, env_dbg = pace_and_blowout_from_games(
+        vs_games,
+        last_games_10,
+        injury_ctx={
+            "ownTeamImpact": own_team_impact,
+            "oppTeamImpact": opp_team_impact,
+        },
+        est_minutes=float(est_min) + float(inj_minutes_add),
+    )
 
     sim = call_simulate_props(
         season_avg=season_avg,
@@ -224,9 +364,13 @@ def get_player_projection(qs: dict, *, nba_simulator_mod_passed=None):
         "distributionHistogram": {"pts": pts_hist} if pts_hist else {},
         "meta": {
             "estMinutes": round(est_min, 1),
+            "injAdjustedMinutes": round(float(est_min) + float(inj_minutes_add), 1),
             "oppAdj": opp_adj,
             "paceMult": pace_mult,
             "minutesMult": minutes_mult,
+            "blowoutRiskPct": (env_dbg or {}).get("blowoutRiskPct"),
+            "blowoutTier": (env_dbg or {}).get("blowoutTier"),
+            "teamStrengthDelta": (env_dbg or {}).get("teamStrengthDelta"),
             "confidence": meta.get("confidence") or "—",
             "minutesStability": (sim.get("diagnostics") or {}).get("minutesStability"),
             "minutesMu": (sim.get("diagnostics") or {}).get("minutesMu"),
@@ -234,19 +378,29 @@ def get_player_projection(qs: dict, *, nba_simulator_mod_passed=None):
             "nSamples": (sim.get("diagnostics") or {}).get("n"),
             "injMinutesAdd": round(float(inj_minutes_add), 2),
             "injUsageMult": inj_usage_mult,
+            "ownTeamImpact": round(float(own_team_impact), 3),
+            "oppTeamImpact": round(float(opp_team_impact), 3),
             "gameIdUsed": int(game_id) if game_id else None,
             "ptsEngine": ((sim.get("diagnostics") or {}).get("engine") or {}).get("pts"),
+            "ownTeamOut": own_team_out,
+            "oppTeamOut": opp_team_out,
+            "opportunity": meta.get("opportunity") or {},
         },
         "debug": {
-            "apiFile": __file__,  # ✅ PROOF the right file is loaded
-            "simulatorFile": getattr(sim_mod, "__file__", None),  # ✅ PROOF
+            "apiFile": __file__,
+            "simulatorFile": getattr(sim_mod, "__file__", None),
             "envAdjust": env_dbg,
             "webStatsUrl": web_url,
             "seasonYearUsed": season_year,
             "opponentTeamId": opp_id_int,
+            "athleteTeamId": athlete_team_id,
+            "athleteTeamIdSource": athlete_team_id_source,
             "baseProjection": base.get("projection"),
+            "baseProjectionMeta": meta,
             "gamelogDebug": dbg10,
             "injuryAdjust": inj_dbg,
+            "eventInjuriesCount": len(event_rows or []),
+            "eventInjuriesTeamIds": sorted(list({str(r.get("teamId")) for r in (event_rows or []) if r.get("teamId") is not None})),
             "summaryEnrichDebug": enrich_dbg,
             "seasonShooting": season_shoot,
             "simDiagnostics": sim.get("diagnostics"),

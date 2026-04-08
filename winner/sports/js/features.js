@@ -191,7 +191,7 @@ async function computeTopPicksTop2(){
     setTeamPicksStatus(`Found ${jobs.length} lines • assessing…`);
 
     // 2) Assess each job (skip slow/failing assessments)
-    const assessed = await asyncPool(3, jobs, async (job) => {
+    const assessed = await asyncPool(2, jobs, async (job) => {
       const { player, lineObj } = job;
       const stat = lineObj.statKey;
       const line = lineObj.line;
@@ -411,27 +411,131 @@ export async function loadVsOpponent(athleteId){
   }
 }
 
+function fmtPctWhole(n){
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "—";
+  return `${Math.round(v)}%`;
+}
+
+function fmtInjuryList(list){
+  if (!Array.isArray(list) || !list.length) return "None";
+  return list
+    .slice(0, 6)
+    .map(x => {
+      const name = escapeHtml(String(x?.name || "Unknown"));
+      const status = escapeHtml(String(x?.status || ""));
+      return status ? `${name} (${status})` : name;
+    })
+    .join(", ");
+}
+
+function blowoutLabel(tier){
+  const t = String(tier || "").toLowerCase();
+  if (t === "very_high") return "Very High";
+  if (t === "high") return "High";
+  if (t === "moderate") return "Moderate";
+  if (t === "low") return "Low";
+  return "—";
+}
+
 export async function loadProjection(athleteId){
   if (els.pPts) els.pPts.textContent = "—";
   if (els.pReb) els.pReb.textContent = "—";
   if (els.pAst) els.pAst.textContent = "—";
-  if (els.projNote) els.projNote.textContent = "Loading projection…";
+  if (els.projNote) {
+    els.projNote.innerHTML = `<div class="muted">Loading projection…</div>`;
+  }
 
   try{
     const data = await api.projection(athleteId, state.currentOpponentTeamId, state.currentGameId);
     const p = data.projection || {};
     const meta = data.meta || {};
+    const debug = data.debug || {};
+    const injDbg = debug.injuryAdjust || {};
+    const envDbg = debug.envAdjust || {};
 
     if (els.pPts) els.pPts.textContent = (typeof p.pts === "number") ? p.pts.toFixed(1) : "—";
     if (els.pReb) els.pReb.textContent = (typeof p.reb === "number") ? p.reb.toFixed(1) : "—";
     if (els.pAst) els.pAst.textContent = (typeof p.ast === "number") ? p.ast.toFixed(1) : "—";
 
     const mins = (typeof meta.estMinutes === "number") ? meta.estMinutes.toFixed(1) : "—";
+    const injAdjMins = (typeof meta.injAdjustedMinutes === "number") ? meta.injAdjustedMinutes.toFixed(1) : mins;
     const conf = meta.confidence || "—";
-    const engine = meta.ptsEngine ? ` • pts engine: ${meta.ptsEngine}` : "";
-    if (els.projNote) els.projNote.textContent = `Projection (est ${mins} min) • confidence: ${conf}${engine}`;
+    const engine = meta.ptsEngine ? ` • pts engine: ${escapeHtml(meta.ptsEngine)}` : "";
+
+    const blowoutPct = fmtPctWhole(meta.blowoutRiskPct);
+    const blowoutTier = blowoutLabel(meta.blowoutTier);
+
+    const ownOut = fmtInjuryList(meta.ownTeamOut);
+    const oppOut = fmtInjuryList(meta.oppTeamOut);
+
+    const injMinAdd = Number(meta.injMinutesAdd);
+    const injMinTxt = Number.isFinite(injMinAdd)
+      ? `${injMinAdd >= 0 ? "+" : ""}${injMinAdd.toFixed(1)}`
+      : "—";
+
+    const ptsMult = Number(meta?.injUsageMult?.pts);
+    const rebMult = Number(meta?.injUsageMult?.reb);
+    const astMult = Number(meta?.injUsageMult?.ast);
+
+    const ptsMultTxt = Number.isFinite(ptsMult) ? `${ptsMult.toFixed(2)}x` : "—";
+    const rebMultTxt = Number.isFinite(rebMult) ? `${rebMult.toFixed(2)}x` : "—";
+    const astMultTxt = Number.isFinite(astMult) ? `${astMult.toFixed(2)}x` : "—";
+
+    const ownImpact = Number(meta.ownTeamImpact);
+    const oppImpact = Number(meta.oppTeamImpact);
+    const ownImpactTxt = Number.isFinite(ownImpact) ? ownImpact.toFixed(2) : "—";
+    const oppImpactTxt = Number.isFinite(oppImpact) ? oppImpact.toFixed(2) : "—";
+
+    const gameIdUsed = meta.gameIdUsed ?? "None";
+    const eventInjuriesCount = debug.eventInjuriesCount ?? "—";
+    const injSummary = escapeHtml(String(injDbg.summary || "None"));
+    const injNotes = Array.isArray(injDbg.notes) ? injDbg.notes.map(x => escapeHtml(String(x))).join(" | ") : "None";
+    const envDelta = (envDbg && typeof envDbg.teamStrengthDelta === "number")
+      ? envDbg.teamStrengthDelta.toFixed(2)
+      : "—";
+
+    if (els.projNote){
+      els.projNote.innerHTML = `
+        <div><b>Projection</b> (base ${escapeHtml(mins)} min • injury-adjusted ${escapeHtml(injAdjMins)} min) • confidence: ${escapeHtml(conf)}${engine}</div>
+
+        <div class="small muted" style="margin-top:6px;">
+          Blowout risk: <b>${escapeHtml(blowoutPct)}</b> (${escapeHtml(blowoutTier)})
+          &nbsp;•&nbsp; own impact: ${escapeHtml(ownImpactTxt)}
+          &nbsp;•&nbsp; opp impact: ${escapeHtml(oppImpactTxt)}
+          &nbsp;•&nbsp; delta: ${escapeHtml(envDelta)}
+        </div>
+
+        <div class="small muted" style="margin-top:6px;">
+          Injury bump: minutes ${escapeHtml(injMinTxt)}
+          &nbsp;•&nbsp; PTS ${escapeHtml(ptsMultTxt)}
+          &nbsp;•&nbsp; REB ${escapeHtml(rebMultTxt)}
+          &nbsp;•&nbsp; AST ${escapeHtml(astMultTxt)}
+        </div>
+
+        <div class="small" style="margin-top:8px;">
+          <b>Own team out:</b> ${ownOut}
+        </div>
+        <div class="small" style="margin-top:4px;">
+          <b>Opponent out:</b> ${oppOut}
+        </div>
+
+        <div class="small muted" style="margin-top:10px; border-top:1px solid #333; padding-top:8px;">
+          <b>Debug</b><br/>
+          gameIdUsed: ${escapeHtml(String(gameIdUsed))}<br/>
+          eventInjuriesCount: ${escapeHtml(String(eventInjuriesCount))}<br/>
+          injury summary: ${injSummary}<br/>
+          injury notes: ${injNotes}
+        </div>
+      `;
+    }
+
+    // also log the full payload for inspection
+    console.log("projection payload", data);
   } catch (e){
-    if (els.projNote) els.projNote.textContent = `Could not load projection. (${e.message})`;
+    if (els.projNote) {
+      els.projNote.innerHTML = `<div class="muted">Could not load projection. (${escapeHtml(e.message)})</div>`;
+    }
   }
 }
 

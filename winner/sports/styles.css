@@ -359,3 +359,28 @@ button.ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,25
 #distLegend{ margin-top:6px; color:var(--muted); font-size:12px; }
 
 #side { display: block !important; }
+
+.music-box {
+  padding: 12px;
+  margin: 12px 0;
+  border: 1px solid #333;
+  border-radius: 10px;
+  background: #111;
+}
+
+.music-box button {
+  margin-right: 8px;
+  margin-bottom: 8px;
+}
+
+#music-status {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+#yt-player-wrap {
+  width: 320px;
+  height: 200px;
+  border-radius: 10px;
+  overflow: hidden;
+}

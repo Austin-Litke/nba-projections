@@ -712,7 +712,7 @@
     {
       "id": 32,
       "createdAt": "2026-03-06T20:18:34Z",
-      "settledAt": null,
+      "settledAt": "2026-04-09T21:44:12Z",
       "athleteId": 3202,
       "stat": "pts",
       "line": 27.5,
@@ -722,8 +722,8 @@
       "opponentTeamId": 22,
       "gameId": "401810765",
       "gameDate": "2026-03-07T01:00Z",
-      "actual": null,
-      "result": null,
+      "actual": 20.0,
+      "result": "under",
       "meta": {
         "minutesMu": 36.6,
         "minutesSd": 3.39,
@@ -1218,7 +1218,7 @@
     {
       "id": 54,
       "createdAt": "2026-04-08T20:55:12Z",
-      "settledAt": null,
+      "settledAt": "2026-04-10T19:44:50Z",
       "athleteId": 4278039,
       "stat": "pts",
       "line": 20.5,
@@ -1228,8 +1228,8 @@
       "opponentTeamId": 5,
       "gameId": "401811013",
       "gameDate": "2026-04-08T23:00Z",
-      "actual": null,
-      "result": null,
+      "actual": 25.0,
+      "result": "over",
       "meta": {
         "minutesMu": 35,
         "minutesSd": 4.42,

@@ -18,16 +18,36 @@
     </header>
 
     <div class="music-box">
-      <button id="music-play-random">Play Random Treaty Oak Revival</button>
-      <button id="music-next">Next Song</button>
+      <div class="music-row">
+        <label for="treaty-select">Treaty Oak Revival:</label>
+        <select id="treaty-select">
+          <option value="">Choose a song</option>
+        </select>
+        <button id="music-play-treaty-selected">Play Treaty Oak Song</button>
+      </div>
+
+      <div class="music-row">
+        <label for="cash-select">Test Playlist:</label>
+        <select id="cash-select">
+          <option value="">Choose a song</option>
+        </select>
+        <button id="music-play-cash-selected">Play Test Song</button>
+      </div>
+
+      <div class="music-row">
+        <button id="music-play-treaty">Play Random Treaty Oak</button>
+        <button id="music-play-cash">Play Random Test Song</button>
+        <button id="music-next">Next Song</button>
+      </div>
+
       <div id="music-status">Ready to play</div>
+
       <div id="yt-player-wrap">
         <div id="yt-player"></div>
       </div>
     </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
-    
     <script src="js/music.js"></script>
 
     <div class="layout">
@@ -48,7 +68,6 @@
         </div>
         <div class="sideMeta muted" id="sideMeta">—</div>
 
-        <!-- ✅ NEW: Team Best Picks panel -->
         <div class="teamPicks" id="teamPicks">
           <div class="teamPicksTop">
             <div class="teamPicksTitle">Best picks (Underdog)</div>
@@ -62,7 +81,6 @@
       </aside>
     </div>
 
-    <!-- Player modal -->
     <div class="modal" id="modal">
       <div class="modalInner">
         <div class="modalTop">
@@ -73,7 +91,6 @@
         <div class="modalBody">
           <div class="muted" id="playerTeam">—</div>
 
-          <!-- Season averages -->
           <div class="statsRow">
             <div class="stat">
               <div class="statLabel">PTS</div>
@@ -89,7 +106,6 @@
             </div>
           </div>
 
-          <!-- Projection -->
           <div class="statsRow">
             <div class="stat">
               <div class="statLabel">PROJ PTS</div>
@@ -106,13 +122,11 @@
           </div>
           <div class="muted small" id="projNote"></div>
 
-          <!-- Distribution histogram -->
           <div class="distWrap" id="distWrap" style="margin-top:8px;">
             <canvas id="distChart" width="760" height="160"></canvas>
             <div class="muted small" id="distLegend">Distribution (PTS) • median and line overlay</div>
           </div>
 
-          <!-- Manual line assessment -->
           <div class="lineRow">
             <label class="muted small">Manual Line:</label>
             <input id="manualLine" type="number" step="0.5" placeholder="e.g. 25.5" />
@@ -132,7 +146,6 @@
             Enter a line and press Assess.
           </div>
 
-          <!-- ✅ NEW: Explanation / Edge panel -->
           <div class="explainPanel" id="explainPanel">
             <div class="explainTitle">Model Explanation & Edge</div>
             <div id="explainBody" class="explainBody muted small">
@@ -140,7 +153,6 @@
             </div>
           </div>
 
-          <!-- Last 5 + Vs Opponent -->
           <div class="twoCol">
             <div class="player-section">
               <h3>Last 5 Games</h3>
@@ -160,7 +172,6 @@
             </div>
           </div>
 
-          <!-- ✅ Tracking -->
           <div class="player-section">
             <div class="trackHeader">
               <h3>Tracking (This Player)</h3>

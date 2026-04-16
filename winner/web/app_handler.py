@@ -1,4 +1,3 @@
-# winner/web/app_handler.py
 from __future__ import annotations
 
 from http.server import SimpleHTTPRequestHandler
@@ -6,12 +5,14 @@ from urllib.parse import urlparse
 
 from api.utils import json_bytes
 from api import nba_api
+from mlb.api import mlb_api
 
 
 class AppHandler(SimpleHTTPRequestHandler):
     """
-    - Serves static files from winner/ (same as before)
+    - Serves static files from winner/
     - Dispatches /api/nba/... to nba_api
+    - Dispatches /api/mlb/... to mlb_api
     """
 
     def log_message(self, fmt, *args):
@@ -27,8 +28,6 @@ class AppHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         except (BrokenPipeError, ConnectionResetError):
-            # Browser/client aborted before we finished sending.
-            # Common when frontend timeout fires on a slow request.
             pass
 
     def do_GET(self):
@@ -46,6 +45,18 @@ class AppHandler(SimpleHTTPRequestHandler):
                 self.send_json(500, {"error": str(e)})
             return
 
+        if parsed.path.startswith("/api/mlb/"):
+            try:
+                res = mlb_api.handle_get(parsed.path, parsed.query)
+                if res is None:
+                    self.send_json(404, {"error": "Not found"})
+                    return
+                code, payload = res
+                self.send_json(code, payload)
+            except Exception as e:
+                self.send_json(500, {"error": str(e)})
+            return
+
         return super().do_GET()
 
     def do_POST(self):
@@ -54,6 +65,18 @@ class AppHandler(SimpleHTTPRequestHandler):
         if parsed.path.startswith("/api/nba/"):
             try:
                 res = nba_api.handle_post(self, parsed.path)
+                if res is None:
+                    self.send_json(404, {"error": "Not found"})
+                    return
+                code, payload = res
+                self.send_json(code, payload)
+            except Exception as e:
+                self.send_json(500, {"error": str(e)})
+            return
+
+        if parsed.path.startswith("/api/mlb/"):
+            try:
+                res = mlb_api.handle_post(self, parsed.path)
                 if res is None:
                     self.send_json(404, {"error": "Not found"})
                     return

@@ -1,0 +1,8 @@
+export const state = {
+  health: null,
+  scoreboard: null,
+
+  currentPitcherId: null,
+  pitcher: null,
+  pitcherGameLog: null,
+};

@@ -1,0 +1,149 @@
+body {
+  margin: 0;
+  font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  background: #0b1220;
+  color: #fff;
+}
+
+.wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: #b8c6d8;
+  text-decoration: none;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+.hero {
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.hero p {
+  margin: 0;
+  color: #b8c6d8;
+}
+
+.card {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+button {
+  background: #1f6feb;
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.92;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: rgba(0,0,0,.25);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.muted {
+  color: #b8c6d8;
+}
+
+.game-card {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.game-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #b8c6d8;
+}
+
+.team-row {
+  padding: 8px 0;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.team-row:first-of-type {
+  border-top: 0;
+}
+
+.team-main {
+  font-weight: 600;
+}
+
+.team-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #b8c6d8;
+}
+
+.game-meta {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #b8c6d8;
+}
+
+.link-btn {
+  background: none;
+  border: 0;
+  color: #7cc0ff;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.detail-card {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.detail-row {
+  margin-top: 6px;
+  color: #d8e2f0;
+}
+
+.log-row {
+  padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.log-row:first-of-type {
+  border-top: 0;
+}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MLB Room</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="../index.html">← Back to Winner Arcade</a>
+
+    <header class="hero">
+      <h1>⚾ MLB Room</h1>
+      <p>Pitcher strikeout predictor skeleton</p>
+    </header>
+
+    <section class="card">
+      <h2>Status</h2>
+      <div id="status">Loading...</div>
+    </section>
+
+    <section class="card">
+      <h2>Scoreboard</h2>
+      <button id="refreshBtn">Refresh</button>
+      <div id="scoreboardOut">No data yet.</div>
+    </section>
+  </div>
+    <section class="card">
+      <h2>Pitcher Detail</h2>
+      <div id="pitcherStatus" class="muted">Click a probable pitcher to load details.</div>
+      <div id="pitcherDetail"></div>
+      <div id="pitcherGameLog"></div>
+    </section>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

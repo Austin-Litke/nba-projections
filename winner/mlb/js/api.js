@@ -8,7 +8,6 @@ async function getJson(url) {
 
   return data;
 }
-
 export const api = {
   health() {
     return getJson("/api/mlb/health");
@@ -27,5 +26,15 @@ export const api = {
     return getJson(
       `/api/mlb/pitcher_gamelog?pitcherId=${encodeURIComponent(pitcherId)}&limit=${encodeURIComponent(limit)}`
     );
+  },
+
+  pitcherProjection(pitcherId, limit = 5) {
+    return getJson(
+      `/api/mlb/pitcher_projection?pitcherId=${encodeURIComponent(pitcherId)}&limit=${encodeURIComponent(limit)}`
+    );
+  },
+
+  pitcherLines(pitcherId) {
+    return getJson(`/api/mlb/underdog_lines?pitcherId=${encodeURIComponent(pitcherId)}`);
   },
 };

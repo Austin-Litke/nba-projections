@@ -5,5 +5,7 @@ export const els = {
 
   pitcherStatus: document.getElementById("pitcherStatus"),
   pitcherDetail: document.getElementById("pitcherDetail"),
+  pitcherProjection: document.getElementById("pitcherProjection"),
+  pitcherLines: document.getElementById("pitcherLines"),
   pitcherGameLog: document.getElementById("pitcherGameLog"),
 };

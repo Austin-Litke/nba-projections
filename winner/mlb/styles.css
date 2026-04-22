@@ -147,3 +147,33 @@ pre {
 .log-row:first-of-type {
   border-top: 0;
 }
+.game-time {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #b8c6d8;
+}
+
+.lean-neutral {
+  color: #b8c6d8;
+  font-weight: 600;
+}
+
+.lean-over {
+  color: #7ee787;
+  font-weight: 700;
+}
+
+.lean-over-strong {
+  color: #56d364;
+  font-weight: 800;
+}
+
+.lean-under {
+  color: #ff7b72;
+  font-weight: 700;
+}
+
+.lean-under-strong {
+  color: #ff5c57;
+  font-weight: 800;
+}

@@ -5,6 +5,8 @@ import {
   renderScoreboard,
   renderPitcherStatus,
   renderPitcherDetail,
+  renderPitcherProjection,
+  renderPitcherLines,
   renderPitcherGameLog,
 } from "./render.js";
 import { els } from "./dom.js";
@@ -24,25 +26,53 @@ export async function loadPitcher(pitcherId) {
   renderPitcherStatus("Loading pitcher...");
   state.pitcher = await api.pitcher(pitcherId);
   renderPitcherDetail(state.pitcher);
-  renderPitcherStatus("Pitcher loaded.");
+}
+
+export async function loadPitcherProjection(pitcherId) {
+  renderPitcherStatus("Loading projection...");
+  state.pitcherProjection = await api.pitcherProjection(pitcherId, 5);
+  renderPitcherProjection(state.pitcherProjection, state.pitcherLines);
+}
+
+export async function loadPitcherLines(pitcherId) {
+  renderPitcherStatus("Loading lines...");
+  state.pitcherLines = await api.pitcherLines(pitcherId);
+  renderPitcherLines(state.pitcherLines);
+
+  if (state.pitcherProjection) {
+    renderPitcherProjection(state.pitcherProjection, state.pitcherLines);
+  }
 }
 
 export async function loadPitcherGameLog(pitcherId) {
   renderPitcherStatus("Loading recent starts...");
   state.pitcherGameLog = await api.pitcherGameLog(pitcherId, 5);
   renderPitcherGameLog(state.pitcherGameLog);
-  renderPitcherStatus("Pitcher and recent starts loaded.");
 }
 
 export async function selectPitcher(pitcherId) {
   try {
+    state.pitcher = null;
+    state.pitcherProjection = null;
+    state.pitcherLines = null;
+    state.pitcherGameLog = null;
+
     els.pitcherDetail.innerHTML = "";
+    els.pitcherProjection.innerHTML = "";
+    els.pitcherLines.innerHTML = "";
     els.pitcherGameLog.innerHTML = "";
+
     await loadPitcher(pitcherId);
+    await loadPitcherProjection(pitcherId);
+    await loadPitcherLines(pitcherId);
     await loadPitcherGameLog(pitcherId);
+
+    renderPitcherStatus("Pitcher, projection, lines, and recent starts loaded.");
   } catch (err) {
     renderPitcherStatus(String(err));
     els.pitcherDetail.innerHTML = "";
+    els.pitcherProjection.innerHTML = "";
+    els.pitcherLines.innerHTML = "";
     els.pitcherGameLog.innerHTML = "";
   }
 }

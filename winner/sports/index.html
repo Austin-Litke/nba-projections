@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Sports Room - NBA</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -17,6 +18,7 @@
       </div>
     </header>
 
+    <!-- YOUTUBE MUSIC BOX -->
     <div class="music-box">
       <div class="music-row">
         <label for="treaty-select">Treaty Oak Revival:</label>
@@ -47,6 +49,28 @@
       </div>
     </div>
 
+    <!-- SPOTIFY MUSIC BOX -->
+    <div class="music-box" style="margin-top: 14px;">
+      <div class="music-row">
+        <label for="spotify-select">Spotify Playlist:</label>
+        <select id="spotify-select">
+          <option value="">Choose a Spotify song</option>
+        </select>
+        <button id="spotify-play-selected">Play Spotify Song</button>
+      </div>
+
+      <div class="music-row">
+        <button id="spotify-play-random">Play Random Spotify</button>
+        <button id="spotify-next">Next Spotify Song</button>
+      </div>
+
+      <div id="spotify-status">Spotify ready</div>
+
+      <div id="spotify-player-wrap" style="margin-top: 8px;">
+        <div id="spotify-embed"></div>
+      </div>
+    </div>
+
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="js/music.js"></script>
 
@@ -73,7 +97,7 @@
             <div class="teamPicksTitle">Best picks (Underdog)</div>
             <button id="teamPicksBtn" class="teamPicksBtn">Top 2</button>
           </div>
-          <div id="teamPicksStatus" class="muted small">Click “Top 8” to rank picks for this team.</div>
+          <div id="teamPicksStatus" class="muted small">Click “Top 2” to rank picks for this team.</div>
           <div id="teamPicksResults" class="teamPicksResults"></div>
         </div>
 

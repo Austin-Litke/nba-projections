@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from urllib.parse import urlparse, parse_qs
-
+from mlb.api.routes.lines import get_underdog_lines
 from mlb.api.helpers.errors import err_with_trace
 from mlb.api.routes.core import get_health, get_scoreboard
-from mlb.api.routes.pitcher import get_pitcher, get_pitcher_gamelog
+from mlb.api.routes.pitcher import (
+    get_pitcher,
+    get_pitcher_gamelog,
+    get_pitcher_projection,
+)
 
 
 GET_ROUTES = {
@@ -12,6 +16,8 @@ GET_ROUTES = {
     "/api/mlb/scoreboard": get_scoreboard,
     "/api/mlb/pitcher": get_pitcher,
     "/api/mlb/pitcher_gamelog": get_pitcher_gamelog,
+    "/api/mlb/pitcher_projection": get_pitcher_projection,
+    "/api/mlb/underdog_lines": get_underdog_lines,
 }
 
 POST_ROUTES = {

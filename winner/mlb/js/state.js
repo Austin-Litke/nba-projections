@@ -5,4 +5,6 @@ export const state = {
   currentPitcherId: null,
   pitcher: null,
   pitcherGameLog: null,
+  pitcherProjection: null,
+  pitcherLines: null,
 };

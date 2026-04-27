@@ -1,4 +1,1 @@
-nba_api
-pandas
-numpy
-rich
+requests

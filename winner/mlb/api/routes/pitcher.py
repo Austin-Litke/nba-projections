@@ -4,7 +4,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from mlb.api.client import get_person, get_pitcher_game_log, get_schedule
-from mlb.api.opponent import get_team_k_adjustment
+from mlb.api.team_stats import get_team_k_adjustment_for_opponent
 from mlb.api.projection import build_pitcher_projection
 
 
@@ -259,7 +259,9 @@ def get_pitcher_projection(qs):
 
     matchup = _find_today_opponent_for_pitcher(pitcher_id, date_iso)
     opponent_team = matchup.get("opponentTeam")
-    opponent_adjustment = get_team_k_adjustment(opponent_team)
+
+    opp_env = get_team_k_adjustment_for_opponent(opponent_team, season)
+    opponent_adjustment = opp_env.get("adjustment", 1.0)
 
     proj = build_pitcher_projection(
         season=season_stats,
@@ -277,6 +279,7 @@ def get_pitcher_projection(qs):
             "teamName": ((person.get("currentTeam") or {}).get("name")),
         },
         "matchup": matchup,
+        "opponentEnvironment": opp_env,
         **proj,
         "debug": debug,
     }

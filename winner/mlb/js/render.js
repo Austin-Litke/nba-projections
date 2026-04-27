@@ -1,5 +1,8 @@
 import { els } from "./dom.js";
 
+
+const oppEnv = projectionData?.opponentEnvironment || {};
+
 function esc(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -159,6 +162,11 @@ export function renderPitcherProjection(projectionData, linesData = null) {
 
       <div class="detail-row" style="margin-top:10px;"><strong>Opponent:</strong> ${esc(matchup.opponentTeam ?? "Unknown")}</div>
       <div class="detail-row"><strong>Opponent Adj:</strong> ${esc(meta.opponentAdjustment ?? "")}</div>
+      <div class="detail-row"><strong>Opponent K%:</strong> ${esc(oppEnv.kRate ?? "")}</div>
+      <div class="detail-row muted">
+        League Avg K%: ${esc(oppEnv.leagueAvgKRate ?? "")}
+        ${oppEnv.source ? `| Source: ${esc(oppEnv.source)}` : ""}
+      </div>
 
       ${
         lineData

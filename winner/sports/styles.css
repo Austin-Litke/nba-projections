@@ -384,3 +384,74 @@ button.ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,25
   border-radius: 10px;
   overflow: hidden;
 }
+
+.spotify-box {
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255,255,255,0.03);
+}
+
+.spotify-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.spotify-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.spotify-subtitle {
+  font-size: 13px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.spotify-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.spotify-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spotify-control-group label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.spotify-control-group select {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.2);
+  color: inherit;
+  padding: 0 10px;
+}
+
+.spotify-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.spotify-buttons button {
+  border-radius: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+
+#spotify-status {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-top: 4px;
+}

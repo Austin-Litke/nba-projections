@@ -10,23 +10,27 @@ const treatyOakVideos = [
   { title: "Bad State of Mind", videoId: "rE-4FDZnXDw" },
   { title: "Happy Face", videoId: "ZoCEGAcR6zM" },
   { title: "Withdrawals", videoId: "3PlHurzjC4k" },
-  { title: "Wrong Place", videoId: "hQs1qxzAXCc" },
-  { title: "Arctic Monkeys - Do I Wanna Know? (Working)", videoId: "F586JktJyEg" },
-  
+  { title: "choosin texas", videoId: "4hpduPieV7A" },
 ];
 
-// Keep this for testing alternate YouTube songs if you want.
 const testVideos = [
   { title: "Arctic Monkeys - Do I Wanna Know? (Working)", videoId: "F586JktJyEg" },
-  { title: "something", videoId: "gLA6VyT4QOw" },
 ];
 
-// Put your Spotify songs here.
-// You can use either just the track ID or a full Spotify track URL.
-const spotifyTracks = [
-  { title: "Spotify Test Song 1", trackId: "4ZtFanR9U6ndgddUvNcjcG" },
-  { title: "Spotify Test Song 2", trackId: "11dFghVXANMlKmJXsNCbNl" },
-  { title: "Spotify Test Song 3", trackId: "3AJwUDP919kvQ9QcozQPxg" },
+// Use either a playlist ID or full Spotify playlist URL.
+const spotifyPlaylists = [
+  {
+    title: "Tate McRae",
+    playlistId: "1kcGTH36NymIBMadgxbL2v"
+  },
+  {
+    title: "Noah Kahan",
+    playlistId: "6EVaH9p1mmMSFBJdVgoLyq"
+  },
+  {
+    title: "treaty oak revival",
+    playlistId: "6I3Ew5hkJgguxfD7RGYVoY"
+  }
 ];
 
 let player = null;
@@ -35,7 +39,7 @@ let currentPlaylistName = "Treaty Oak Revival";
 let currentIndex = 0;
 let triedIndexes = new Set();
 
-let currentSpotifyIndex = 0;
+let currentSpotifyPlaylistIndex = 0;
 
 function setStatus(text) {
   const el = document.getElementById("music-status");
@@ -80,27 +84,41 @@ function populateDropdown(selectId, songs) {
   });
 }
 
-function normalizeSpotifyTrackId(value) {
+function populateSpotifyPlaylistDropdown() {
+  const select = document.getElementById("spotify-playlist-select");
+  if (!select) return;
+
+  select.innerHTML = '<option value="">Choose a playlist</option>';
+
+  spotifyPlaylists.forEach((playlist, index) => {
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = playlist.title;
+    select.appendChild(option);
+  });
+}
+
+function normalizeSpotifyPlaylistId(value) {
   if (!value) return "";
 
   if (!value.includes("spotify")) {
     return value.trim();
   }
 
-  const match = value.match(/track\/([a-zA-Z0-9]+)/);
+  const match = value.match(/playlist\/([a-zA-Z0-9]+)/);
   return match ? match[1] : "";
 }
 
-function loadSpotifyTrack(index) {
-  if (index < 0 || index >= spotifyTracks.length) return;
+function loadSpotifyPlaylist(index) {
+  if (index < 0 || index >= spotifyPlaylists.length) return;
 
-  currentSpotifyIndex = index;
+  currentSpotifyPlaylistIndex = index;
 
-  const track = spotifyTracks[index];
-  const trackId = normalizeSpotifyTrackId(track.trackId);
+  const playlist = spotifyPlaylists[index];
+  const playlistId = normalizeSpotifyPlaylistId(playlist.playlistId);
 
-  if (!trackId) {
-    setSpotifyStatus(`Invalid Spotify track for: ${track.title}`);
+  if (!playlistId || playlistId.startsWith("PUT_YOUR_")) {
+    setSpotifyStatus(`Set a real Spotify playlist ID for: ${playlist.title}`);
     return;
   }
 
@@ -110,41 +128,53 @@ function loadSpotifyTrack(index) {
   embed.innerHTML = `
     <iframe
       style="border-radius:12px"
-      src="https://open.spotify.com/embed/track/${trackId}"
+      src="https://open.spotify.com/embed/playlist/${playlistId}"
       width="100%"
-      height="152"
+      height="380"
       frameborder="0"
       allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
     </iframe>
   `;
 
-  setSpotifyStatus(`Loaded Spotify: ${track.title}`);
+  setSpotifyStatus(`Loaded playlist: ${playlist.title}`);
 }
 
-function playRandomSpotify() {
-  if (!spotifyTracks.length) return;
-  loadSpotifyTrack(getRandomIndex(spotifyTracks.length));
-}
-
-function playNextSpotify() {
-  if (!spotifyTracks.length) return;
-
-  let next = currentSpotifyIndex + 1;
-  if (next >= spotifyTracks.length) {
-    next = 0;
-  }
-
-  loadSpotifyTrack(next);
-}
-
-function playSelectedSpotifySong() {
-  const select = document.getElementById("spotify-select");
+function loadSelectedSpotifyPlaylist() {
+  const select = document.getElementById("spotify-playlist-select");
   if (!select || select.value === "") {
-    setSpotifyStatus("Choose a Spotify song first.");
+    setSpotifyStatus("Choose a Spotify playlist first.");
     return;
   }
 
-  loadSpotifyTrack(Number(select.value));
+  loadSpotifyPlaylist(Number(select.value));
+}
+
+function playRandomSpotifyPlaylist() {
+  if (!spotifyPlaylists.length) return;
+
+  const index = getRandomIndex(spotifyPlaylists.length);
+  loadSpotifyPlaylist(index);
+
+  const select = document.getElementById("spotify-playlist-select");
+  if (select) {
+    select.value = String(index);
+  }
+}
+
+function playNextSpotifyPlaylist() {
+  if (!spotifyPlaylists.length) return;
+
+  let next = currentSpotifyPlaylistIndex + 1;
+  if (next >= spotifyPlaylists.length) {
+    next = 0;
+  }
+
+  loadSpotifyPlaylist(next);
+
+  const select = document.getElementById("spotify-playlist-select");
+  if (select) {
+    select.value = String(next);
+  }
 }
 
 function tryPlayIndex(index) {
@@ -217,7 +247,6 @@ function playSelectedTestSong() {
   tryPlayIndex(Number(select.value));
 }
 
-// Optional scan helper for YouTube test playlist.
 window.scanPlaylist = function scanPlaylist(which = "test") {
   const playlist = which === "treaty" ? treatyOakVideos : testVideos;
   const label = which === "treaty" ? "Treaty Oak Revival" : "Test Playlist";
@@ -309,7 +338,7 @@ window.onYouTubeIframeAPIReady = function () {
       onReady: () => {
         populateDropdown("treaty-select", treatyOakVideos);
         populateDropdown("cash-select", testVideos);
-        populateDropdown("spotify-select", spotifyTracks);
+        populateSpotifyPlaylistDropdown();
 
         setStatus(`Ready to play (${window.location.origin})`);
         setSpotifyStatus("Spotify ready");
@@ -320,9 +349,9 @@ window.onYouTubeIframeAPIReady = function () {
         const treatySelectedBtn = document.getElementById("music-play-treaty-selected");
         const testSelectedBtn = document.getElementById("music-play-cash-selected");
 
-        const spotifyRandomBtn = document.getElementById("spotify-play-random");
-        const spotifyNextBtn = document.getElementById("spotify-next");
-        const spotifySelectedBtn = document.getElementById("spotify-play-selected");
+        const spotifyLoadBtn = document.getElementById("spotify-load-playlist");
+        const spotifyRandomBtn = document.getElementById("spotify-random-playlist");
+        const spotifyNextBtn = document.getElementById("spotify-next-playlist");
 
         if (nextBtn) {
           nextBtn.addEventListener("click", playNextSong);
@@ -350,20 +379,24 @@ window.onYouTubeIframeAPIReady = function () {
           testSelectedBtn.addEventListener("click", playSelectedTestSong);
         }
 
+        if (spotifyLoadBtn) {
+          spotifyLoadBtn.addEventListener("click", loadSelectedSpotifyPlaylist);
+        }
+
         if (spotifyRandomBtn) {
-          spotifyRandomBtn.addEventListener("click", playRandomSpotify);
+          spotifyRandomBtn.addEventListener("click", playRandomSpotifyPlaylist);
         }
 
         if (spotifyNextBtn) {
-          spotifyNextBtn.addEventListener("click", playNextSpotify);
+          spotifyNextBtn.addEventListener("click", playNextSpotifyPlaylist);
         }
 
-        if (spotifySelectedBtn) {
-          spotifySelectedBtn.addEventListener("click", playSelectedSpotifySong);
-        }
-
-        if (spotifyTracks.length) {
-          loadSpotifyTrack(0);
+        if (spotifyPlaylists.length) {
+          const select = document.getElementById("spotify-playlist-select");
+          if (select) {
+            select.value = "0";
+          }
+          loadSpotifyPlaylist(0);
         }
       },
 

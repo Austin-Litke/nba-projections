@@ -8,13 +8,14 @@ from web.app_handler import AppHandler
 
 
 def run():
-    # ensure we serve from winner/ root
     root = os.path.dirname(os.path.abspath(__file__))
     os.chdir(root)
 
-    server = ThreadingHTTPServer(("0.0.0.0", 8000), AppHandler)
+    port = int(os.environ.get("PORT", 8000))
 
-    print("Serving Winner Arcade at http://localhost:8000\n")
+    server = ThreadingHTTPServer(("0.0.0.0", port), AppHandler)
+
+    print(f"Serving Winner Arcade on port {port}\n")
 
     print("NBA API routes:")
     print("  /api/nba/scoreboard?date=YYYYMMDD")
@@ -30,7 +31,7 @@ def run():
     print("  /api/nba/track")
     print("  /api/nba/settle\n")
 
-    print("Using ThreadingHTTPServer (concurrent requests enabled)\n")
+    print("Using ThreadingHTTPServer\n")
 
     server.serve_forever()
 

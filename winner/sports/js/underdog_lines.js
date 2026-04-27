@@ -54,7 +54,7 @@ export async function loadUnderdogLinesForAthlete(athleteId){
   renderMuted("Loading lines…");
 
   try{
-    const res = await fetch(`/api/nba/underdog_lines?athleteId=${athleteId}`);
+    const res = await fetch(`https://nba-projections.onrender.com/api/nba/underdog_lines?athleteId=${athleteId}`);
     const data = await res.json().catch(() => ({}));
     if (!res.ok){
       renderMuted(`Could not load lines. (${data.error || ("HTTP " + res.status)})`);

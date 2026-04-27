@@ -82,7 +82,7 @@ async function postJsonWithTimeout(url, payload, ms = 12000){
 }
 
 async function getUdLines(athleteId){
-  const data = await fetchJsonWithTimeout(`/api/nba/underdog_lines?athleteId=${athleteId}`, 8000);
+  const data = await fetchJsonWithTimeout(`https://nba-projections.onrender.com/api/nba/underdog_lines?athleteId=${athleteId}`, 8000);
   return Array.isArray(data.lines) ? data.lines : [];
 }
 
@@ -90,7 +90,7 @@ async function assessLine(athleteId, stat, line){
   const payload = { athleteId, stat, line };
   if (state.currentOpponentTeamId) payload.opponentTeamId = Number(state.currentOpponentTeamId);
   if (state.currentGameId) payload.gameId = String(state.currentGameId);
-  return postJsonWithTimeout(`/api/nba/assess_line`, payload, 12000);
+  return postJsonWithTimeout(`https://nba-projections.onrender.com/api/nba/assess_line`, payload, 12000);
 }
 
 function renderPickSection(title, picks){

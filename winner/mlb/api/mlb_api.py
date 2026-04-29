@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse, parse_qs
 from mlb.api.routes.lines import get_underdog_lines
+from mlb.api.routes.lineup import get_lineup
 from mlb.api.helpers.errors import err_with_trace
 from mlb.api.routes.core import get_health, get_scoreboard
 from mlb.api.routes.pitcher import (
@@ -18,6 +19,7 @@ GET_ROUTES = {
     "/api/mlb/pitcher_gamelog": get_pitcher_gamelog,
     "/api/mlb/pitcher_projection": get_pitcher_projection,
     "/api/mlb/underdog_lines": get_underdog_lines,
+    "/api/mlb/lineup": get_lineup,
 }
 
 POST_ROUTES = {

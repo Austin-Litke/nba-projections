@@ -7,8 +7,7 @@ async function getJson(url) {
   }
 
   return data;
-}
-export const api = {
+}export const api = {
   health() {
     return getJson("/api/mlb/health");
   },
@@ -36,5 +35,9 @@ export const api = {
 
   pitcherLines(pitcherId) {
     return getJson(`/api/mlb/underdog_lines?pitcherId=${encodeURIComponent(pitcherId)}`);
+  },
+
+  lineup(gameId) {
+    return getJson(`/api/mlb/lineup?gameId=${encodeURIComponent(gameId)}`);
   },
 };

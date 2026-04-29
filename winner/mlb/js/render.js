@@ -1,8 +1,5 @@
 import { els } from "./dom.js";
 
-
-const oppEnv = projectionData?.opponentEnvironment || {};
-
 function esc(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -103,24 +100,30 @@ export function renderScoreboard(data) {
     return;
   }
 
-  els.scoreboardOut.innerHTML = games.map((g) => `
-    <div class="game-card">
-      <div class="game-top">
-        <div class="game-status">${esc(g?.status?.detailed || "Unknown")}</div>
-        <div class="game-date">
-          ${esc(g?.officialDate || "")}
-          ${g?.startTime ? `<div class="game-time">${esc(g.startTime)}</div>` : ""}
+  els.scoreboardOut.innerHTML = games.map((g) => {
+    const startTimeHtml = g?.startTime
+      ? `<div class="game-time">${esc(g.startTime)}</div>`
+      : "";
+
+    return `
+      <div class="game-card">
+        <div class="game-top">
+          <div class="game-status">${esc(g?.status?.detailed || "Unknown")}</div>
+          <div class="game-date">
+            ${esc(g?.officialDate || "")}
+            ${startTimeHtml}
+          </div>
+        </div>
+
+        ${teamLine("Away", g.away)}
+        ${teamLine("Home", g.home)}
+
+        <div class="game-meta">
+          Venue: ${esc(g?.venue?.name || "Unknown")}
         </div>
       </div>
-
-      ${teamLine("Away", g.away)}
-      ${teamLine("Home", g.home)}
-
-      <div class="game-meta">
-        Venue: ${esc(g?.venue?.name || "Unknown")}
-      </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
 export function renderPitcherDetail(data) {
@@ -147,7 +150,31 @@ export function renderPitcherProjection(projectionData, linesData = null) {
   const recent = projectionData?.recent || {};
   const meta = projectionData?.meta || {};
   const matchup = projectionData?.matchup || {};
+  const oppEnv = projectionData?.opponentEnvironment || {};
   const lineData = lineForPitcher(projectionData, linesData);
+
+  let lineHtml = `
+    <div class="detail-row muted" style="margin-top:10px;">
+      No strikeout line available yet for edge calculation.
+    </div>
+  `;
+
+  if (lineData) {
+    lineHtml = `
+      <div class="detail-row" style="margin-top:10px;"><strong>Line:</strong> ${esc(lineData.line)}</div>
+      <div class="detail-row"><strong>Edge:</strong> ${esc(lineData.edge)}</div>
+      <div class="detail-row">
+        <strong>Lean:</strong>
+        <span class="${esc(lineData.leanClass)}">${esc(lineData.lean)}</span>
+      </div>
+      <div class="detail-row muted">
+        Higher: ${esc(lineData.overOdds ?? "")} | Lower: ${esc(lineData.underOdds ?? "")}
+      </div>
+    `;
+  }
+
+  const oppSource = oppEnv?.source ? ` | Source: ${esc(oppEnv.source)}` : "";
+  const splitLabel = oppEnv?.pitcherHand ? `vs ${oppEnv.pitcherHand}` : "overall";
 
   els.pitcherProjection.innerHTML = `
     <div class="detail-card">
@@ -163,28 +190,12 @@ export function renderPitcherProjection(projectionData, linesData = null) {
       <div class="detail-row" style="margin-top:10px;"><strong>Opponent:</strong> ${esc(matchup.opponentTeam ?? "Unknown")}</div>
       <div class="detail-row"><strong>Opponent Adj:</strong> ${esc(meta.opponentAdjustment ?? "")}</div>
       <div class="detail-row"><strong>Opponent K%:</strong> ${esc(oppEnv.kRate ?? "")}</div>
+      <div class="detail-row"><strong>Split:</strong> ${esc(splitLabel)}</div>
       <div class="detail-row muted">
-        League Avg K%: ${esc(oppEnv.leagueAvgKRate ?? "")}
-        ${oppEnv.source ? `| Source: ${esc(oppEnv.source)}` : ""}
+        League Avg K%: ${esc(oppEnv.leagueAvgKRate ?? "")}${oppSource}
       </div>
 
-      ${
-        lineData
-          ? `
-        <div class="detail-row" style="margin-top:10px;"><strong>Line:</strong> ${esc(lineData.line)}</div>
-        <div class="detail-row"><strong>Edge:</strong> ${esc(lineData.edge)}</div>
-        <div class="detail-row">
-          <strong>Lean:</strong>
-          <span class="${esc(lineData.leanClass)}">${esc(lineData.lean)}</span>
-        </div>
-        <div class="detail-row muted">
-          Higher: ${esc(lineData.overOdds ?? "")} | Lower: ${esc(lineData.underOdds ?? "")}
-        </div>
-      `
-          : `
-        <div class="detail-row muted" style="margin-top:10px;">No strikeout line available yet for edge calculation.</div>
-      `
-      }
+      ${lineHtml}
 
       <div class="detail-row" style="margin-top:10px;"><strong>Season Starts:</strong> ${esc(season.gamesStarted ?? "")}</div>
       <div class="detail-row"><strong>Season BF/Start:</strong> ${esc(season.bfPerStart ?? "")}</div>
@@ -200,7 +211,6 @@ export function renderPitcherProjection(projectionData, linesData = null) {
     </div>
   `;
 }
-
 export function renderPitcherLines(data) {
   const lines = data?.lines || [];
 
@@ -253,6 +263,59 @@ export function renderPitcherGameLog(data) {
           <div><strong>${esc(g.date || "")}</strong> vs ${esc(g.opponent || "Unknown")}</div>
           <div>${esc(gameStatText(g))}</div>
           <div class="muted">${esc(g.summary || "")}</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+export function renderPitcherLineup(lineupData, projectionData) {
+  const matchup = projectionData?.matchup || {};
+  const opponentTeam = matchup.opponentTeam || "";
+
+  const away = lineupData?.away || {};
+  const home = lineupData?.home || {};
+
+  let opponentBlock = null;
+
+  if (away.team === opponentTeam) {
+    opponentBlock = away;
+  } else if (home.team === opponentTeam) {
+    opponentBlock = home;
+  }
+
+  if (!opponentBlock) {
+    els.pitcherLineup.innerHTML = `
+      <div class="detail-card">
+        <h3>Opponent Lineup</h3>
+        <div class="muted">Could not match opponent lineup.</div>
+      </div>
+    `;
+    return;
+  }
+
+  const batters = opponentBlock.batters || [];
+
+  if (!batters.length) {
+    els.pitcherLineup.innerHTML = `
+      <div class="detail-card">
+        <h3>Opponent Lineup</h3>
+        <div class="muted">Lineup not posted yet for ${esc(opponentTeam)}.</div>
+      </div>
+    `;
+    return;
+  }
+
+  els.pitcherLineup.innerHTML = `
+    <div class="detail-card">
+      <h3>Opponent Lineup: ${esc(opponentTeam)}</h3>
+      ${batters.map((b, idx) => `
+        <div class="log-row">
+          <div>
+            <strong>${idx + 1}. ${esc(b.name || "Unknown")}</strong>
+            ${b.position ? ` — ${esc(b.position)}` : ""}
+          </div>
+          <div class="muted">Player ID: ${esc(b.id ?? "")}</div>
         </div>
       `).join("")}
     </div>

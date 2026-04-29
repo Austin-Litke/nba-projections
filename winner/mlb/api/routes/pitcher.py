@@ -234,8 +234,6 @@ def get_pitcher_gamelog(qs):
         "games": games,
         "debug": debug,
     }
-
-
 def get_pitcher_projection(qs):
     pitcher_id = _first(qs, "pitcherId").strip()
     season = _first(qs, "season", _current_season_year()).strip()
@@ -250,6 +248,7 @@ def get_pitcher_projection(qs):
     except Exception:
         limit = 5
 
+    # --- Load pitcher ---
     person_payload = get_person(pitcher_id)
     people = person_payload.get("people") or []
     person = people[0] if people else {}
@@ -257,12 +256,21 @@ def get_pitcher_projection(qs):
     season_stats = _extract_season_stats(person)
     recent_games, debug = _get_recent_games(pitcher_id, season, limit)
 
+    # --- Matchup ---
     matchup = _find_today_opponent_for_pitcher(pitcher_id, date_iso)
     opponent_team = matchup.get("opponentTeam")
 
-    opp_env = get_team_k_adjustment_for_opponent(opponent_team, season)
+    pitcher_hand = ((person.get("pitchHand") or {}).get("description"))
+
+    # --- Opponent environment ---
+    opp_env = get_team_k_adjustment_for_opponent(
+        opponent_team,
+        season,
+        pitcher_hand=pitcher_hand,
+    )
     opponent_adjustment = opp_env.get("adjustment", 1.0)
 
+    # --- Projection ---
     proj = build_pitcher_projection(
         season=season_stats,
         recent_games=recent_games,
@@ -275,7 +283,7 @@ def get_pitcher_projection(qs):
         "pitcher": {
             "id": person.get("id"),
             "fullName": person.get("fullName"),
-            "pitchHand": ((person.get("pitchHand") or {}).get("description")),
+            "pitchHand": pitcher_hand,
             "teamName": ((person.get("currentTeam") or {}).get("name")),
         },
         "matchup": matchup,

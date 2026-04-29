@@ -7,6 +7,7 @@ import {
   renderPitcherDetail,
   renderPitcherProjection,
   renderPitcherLines,
+  renderPitcherLineup,
   renderPitcherGameLog,
 } from "./render.js";
 import { els } from "./dom.js";
@@ -55,24 +56,28 @@ export async function selectPitcher(pitcherId) {
     state.pitcher = null;
     state.pitcherProjection = null;
     state.pitcherLines = null;
+    state.pitcherLineup = null;
     state.pitcherGameLog = null;
 
     els.pitcherDetail.innerHTML = "";
     els.pitcherProjection.innerHTML = "";
     els.pitcherLines.innerHTML = "";
+    els.pitcherLineup.innerHTML = "";
     els.pitcherGameLog.innerHTML = "";
 
     await loadPitcher(pitcherId);
     await loadPitcherProjection(pitcherId);
     await loadPitcherLines(pitcherId);
+    await loadPitcherLineup();
     await loadPitcherGameLog(pitcherId);
 
-    renderPitcherStatus("Pitcher, projection, lines, and recent starts loaded.");
+    renderPitcherStatus("Pitcher, projection, lines, lineup, and recent starts loaded.");
   } catch (err) {
     renderPitcherStatus(String(err));
     els.pitcherDetail.innerHTML = "";
     els.pitcherProjection.innerHTML = "";
     els.pitcherLines.innerHTML = "";
+    els.pitcherLineup.innerHTML = "";
     els.pitcherGameLog.innerHTML = "";
   }
 }
@@ -96,4 +101,22 @@ export function wireUi() {
 
     await selectPitcher(pitcherId);
   });
+}
+
+export async function loadPitcherLineup() {
+  const gameId = state.pitcherProjection?.matchup?.gameId;
+
+  if (!gameId) {
+    els.pitcherLineup.innerHTML = `
+      <div class="detail-card">
+        <h3>Opponent Lineup</h3>
+        <div class="muted">No game ID found for lineup lookup.</div>
+      </div>
+    `;
+    return;
+  }
+
+  renderPitcherStatus("Loading opponent lineup...");
+  state.pitcherLineup = await api.lineup(gameId);
+  renderPitcherLineup(state.pitcherLineup, state.pitcherProjection);
 }

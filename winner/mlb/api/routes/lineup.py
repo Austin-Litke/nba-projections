@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from mlb.api.client import get_game_boxscore
-
+from mlb.api.lineup_env import build_lineup_k_environment
 
 def _first(qs, key: str, default: str = "") -> str:
     return (qs.get(key) or [default])[0]
@@ -41,9 +41,10 @@ def _extract_team_batters(team_box: dict) -> list[dict]:
     rows.sort(key=lambda r: int(r.get("battingOrder") or 999999))
     return rows
 
-
 def get_lineup(qs):
     game_id = _first(qs, "gameId").strip()
+    season = _first(qs, "season", "2026").strip()
+
     if not game_id:
         return 400, {"error": "gameId is required"}
 
@@ -56,15 +57,21 @@ def get_lineup(qs):
     away_team = away.get("team") or {}
     home_team = home.get("team") or {}
 
+    away_batters = _extract_team_batters(away)
+    home_batters = _extract_team_batters(home)
+
     return 200, {
         "ok": True,
         "gameId": game_id,
+        "season": season,
         "away": {
             "team": away_team.get("name"),
-            "batters": _extract_team_batters(away),
+            "batters": away_batters,
+            "lineupEnvironment": build_lineup_k_environment(away_batters, season),
         },
         "home": {
             "team": home_team.get("name"),
-            "batters": _extract_team_batters(home),
+            "batters": home_batters,
+            "lineupEnvironment": build_lineup_k_environment(home_batters, season),
         },
     }

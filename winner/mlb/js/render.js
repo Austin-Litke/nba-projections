@@ -152,6 +152,7 @@ export function renderPitcherProjection(projectionData, linesData = null) {
   const matchup = projectionData?.matchup || {};
   const oppEnv = projectionData?.opponentEnvironment || {};
   const lineData = lineForPitcher(projectionData, linesData);
+  const sim = projectionData?.simulation || {};
 
   let lineHtml = `
     <div class="detail-row muted" style="margin-top:10px;">
@@ -178,9 +179,31 @@ export function renderPitcherProjection(projectionData, linesData = null) {
 
   els.pitcherProjection.innerHTML = `
     <div class="detail-card">
-      <h3>Phase 2 Projection</h3>
+      <h3>Phase 4 Projection</h3>
       <div class="detail-row"><strong>Projected Ks:</strong> ${esc(p.strikeouts ?? "")}</div>
       <div class="detail-row"><strong>Expected BF:</strong> ${esc(p.expectedBattersFaced ?? "")}</div>
+      <div class="detail-row"><strong>Base BF:</strong> ${esc(p.baseExpectedBattersFaced ?? "")}</div>
+      <div class="detail-row"><strong>Workload Adj:</strong> ${esc(p.workload?.adjustment ?? "")}</div>
+      <div class="detail-row"><strong>Workload Risk:</strong> ${esc(p.workload?.risk ?? "")}</div>
+      <div class="detail-row"><strong>Workload Volatility:</strong> ${esc(p.workload?.volatility ?? "")}</div>
+      <div class="detail-row muted">
+        Workload notes: ${esc((p.workload?.reasons || []).join(", "))}
+      </div>
+
+      <div class="detail-row" style="margin-top:10px;"><strong>Simulation Mean:</strong> ${esc(sim.mean ?? "")}</div>
+      <div class="detail-row"><strong>Median:</strong> ${esc(sim.median ?? "")}</div>
+      <div class="detail-row"><strong>Range:</strong> P10 ${esc(sim.p10 ?? "")} | P90 ${esc(sim.p90 ?? "")}</div>
+      <div class="detail-row"><strong>Over Prob:</strong> ${sim.probOver != null ? esc(Math.round(sim.probOver * 100) + "%") : ""}</div>
+      <div class="detail-row"><strong>Under Prob:</strong> ${sim.probUnder != null ? esc(Math.round(sim.probUnder * 100) + "%") : ""}</div>
+      <div class="detail-row"><strong>Prob Lean:</strong> ${esc(sim.lean ?? "")}</div>
+
+      <div class="detail-row" style="margin-top:10px;"><strong>Over Implied:</strong> ${sim.overImplied != null ? esc(Math.round(sim.overImplied * 100) + "%") : ""}</div>
+      <div class="detail-row"><strong>Under Implied:</strong> ${sim.underImplied != null ? esc(Math.round(sim.underImplied * 100) + "%") : ""}</div>
+      <div class="detail-row"><strong>Over EV:</strong> ${sim.overEV != null ? esc(sim.overEV.toFixed(2)) : ""}</div>
+      <div class="detail-row"><strong>Under EV:</strong> ${sim.underEV != null ? esc(sim.underEV.toFixed(2)) : ""}</div>
+      <div class="detail-row"><strong>EV Lean:</strong> ${esc(sim.evLean ?? "")}</div>
+
+
       <div class="detail-row"><strong>Blended K%:</strong> ${esc(p.kPct ?? "")}</div>
       <div class="detail-row"><strong>Adjusted K%:</strong> ${esc(p.adjustedKPct ?? "")}</div>
       <div class="detail-row"><strong>Role:</strong> ${esc(p.role ?? "")}</div>
@@ -191,9 +214,27 @@ export function renderPitcherProjection(projectionData, linesData = null) {
       <div class="detail-row"><strong>Opponent Adj:</strong> ${esc(meta.opponentAdjustment ?? "")}</div>
       <div class="detail-row"><strong>Opponent K%:</strong> ${esc(oppEnv.kRate ?? "")}</div>
       <div class="detail-row"><strong>Split:</strong> ${esc(splitLabel)}</div>
+      <div class="detail-row"><strong>Team Adj:</strong> ${esc(oppEnv.teamAdjustment ?? "")}</div>
+      <div class="detail-row"><strong>Lineup Adj:</strong> ${esc(oppEnv.lineupAdjustment ?? "")}</div>
+      <div class="detail-row"><strong>Lineup K%:</strong> ${esc(oppEnv.lineupKRate ?? "")}</div>
       <div class="detail-row muted">
         League Avg K%: ${esc(oppEnv.leagueAvgKRate ?? "")}${oppSource}
+        ${oppEnv.lineupSource ? ` | Lineup Source: ${esc(oppEnv.lineupSource)}` : ""}
       </div>
+
+      ${
+        oppEnv.source === "lineup_override"
+          ? `
+            <div class="detail-row lean-over">
+              Using posted lineup adjustment.
+            </div>
+          `
+          : `
+            <div class="detail-row lean-neutral">
+              Lineup not available — using team vs-hand fallback.
+            </div>
+          `
+      }
 
       ${lineHtml}
 
@@ -211,6 +252,7 @@ export function renderPitcherProjection(projectionData, linesData = null) {
     </div>
   `;
 }
+
 export function renderPitcherLines(data) {
   const lines = data?.lines || [];
 
@@ -295,6 +337,7 @@ export function renderPitcherLineup(lineupData, projectionData) {
   }
 
   const batters = opponentBlock.batters || [];
+  const env = opponentBlock.lineupEnvironment || {};
 
   if (!batters.length) {
     els.pitcherLineup.innerHTML = `
@@ -309,15 +352,343 @@ export function renderPitcherLineup(lineupData, projectionData) {
   els.pitcherLineup.innerHTML = `
     <div class="detail-card">
       <h3>Opponent Lineup: ${esc(opponentTeam)}</h3>
-      ${batters.map((b, idx) => `
+      <div class="detail-row"><strong>Lineup K%:</strong> ${esc(env.lineupKRate ?? "")}</div>
+      <div class="detail-row"><strong>Lineup Adj:</strong> ${esc(env.adjustment ?? "")}</div>
+      <div class="detail-row muted">
+        League K%: ${esc(env.leagueKRate ?? "")}
+        ${env.source ? `| Source: ${esc(env.source)}` : ""}
+      </div>
+
+      ${(env.hitters?.length ? env.hitters : batters).map((b, idx) => `
         <div class="log-row">
           <div>
             <strong>${idx + 1}. ${esc(b.name || "Unknown")}</strong>
             ${b.position ? ` — ${esc(b.position)}` : ""}
           </div>
-          <div class="muted">Player ID: ${esc(b.id ?? "")}</div>
+          <div class="muted">
+            K%: ${esc(b.kRate ?? "")}
+            | Raw K%: ${esc(b.rawKRate ?? "")}
+            | PA: ${esc(b.plateAppearances ?? "")}
+            | Wt: ${esc(b.spotWeight ?? "")}
+            | Sample: ${esc(b.sampleWeight ?? "")}
+            | K: ${esc(b.seasonStrikeOuts ?? "")}
+          </div>
         </div>
       `).join("")}
     </div>
   `;
+}
+
+export function renderTracked(data) {
+  const predictions = data?.predictions || [];
+  const filter = els.trackedFilter?.value || "all";
+  const sort = els.trackedSort?.value || "newest";
+  const metrics = data?.metrics || {};
+  const counts = data?.counts || {};
+  
+
+  if (!predictions.length) {
+    els.trackedOut.innerHTML = `<div class="muted">No tracked picks yet.</div>`;
+    return;
+  }
+
+  const metricsHtml = `
+    <div class="detail-card">
+      <h3>Rolling Record</h3>
+      <div class="muted">
+        Total: ${esc(counts.total ?? 0)}
+        | Pending: ${esc(counts.pending ?? 0)}
+        | Settled: ${esc(counts.settled ?? 0)}
+        | +EV: ${esc(counts.plusEV ?? 0)}
+      </div>
+
+
+      <div><strong>Record:</strong> ${esc(metrics.record || "0-0-0")}</div>
+      <div><strong>Win Rate:</strong> ${
+        metrics.winRate != null ? esc(Math.round(metrics.winRate * 100) + "%") : ""
+      }</div>
+      <div><strong>Units:</strong> ${esc(metrics.units ?? 0)}</div>
+      <div><strong>ROI:</strong> ${
+        metrics.roi != null ? esc(Math.round(metrics.roi * 100) + "%") : ""
+      }</div>
+
+      <div style="margin-top:8px;"><strong>Avg EV:</strong> ${
+        metrics.averageEV != null ? esc(metrics.averageEV.toFixed(2)) : ""
+      }</div>
+      <div><strong>Avg Probability:</strong> ${
+        metrics.averageProbability != null ? esc(Math.round(metrics.averageProbability * 100) + "%") : ""
+      }</div>
+
+      <div style="margin-top:8px;"><strong>Over Record:</strong> ${esc(metrics.overRecord || "0-0")}</div>
+      <div><strong>Under Record:</strong> ${esc(metrics.underRecord || "0-0")}</div>
+      <div><strong>+EV Record:</strong> ${esc(metrics.plusEVRecord || "0-0")}</div>
+
+      <div style="margin-top:10px;"><strong>Calibration</strong></div>
+      ${Object.entries(metrics.calibration || {}).map(([bucket, row]) => `
+        <div class="muted">
+          ${esc(bucket)}%:
+          ${esc(row.record || "0-0-0")}
+          ${
+            row.winRate != null
+              ? ` | Win Rate: ${esc(Math.round(row.winRate * 100) + "%")}`
+              : ""
+          }
+        </div>
+      `).join("")}
+
+      <div class="muted" style="margin-top:8px;">
+        Settled Picks: ${esc(metrics.settled ?? 0)}
+      </div>
+    </div>
+  `;
+
+
+
+  const filteredPredictions = predictions.filter((p) => {
+    const isSettled = p.settled === true || p.result;
+    const sim = p.simulation || {};
+    const side = (p.side || "").toLowerCase();
+
+    const chosenEV =
+      side === "over"
+        ? sim.overEV
+        : side === "under"
+          ? sim.underEV
+          : null;
+
+    if (filter === "pending") return !isSettled;
+    if (filter === "settled") return isSettled;
+    if (filter === "plus_ev") return chosenEV != null && chosenEV > 0;
+
+    return true;
+  });
+
+
+  const chosenEVForPick = (p) => {
+    const side = (p.side || "").toLowerCase();
+    const sim = p.simulation || {};
+
+    if (side === "over") return sim.overEV ?? -999;
+    if (side === "under") return sim.underEV ?? -999;
+    return -999;
+  };
+
+  const chosenProbForPick = (p) => {
+    const side = (p.side || "").toLowerCase();
+    const sim = p.simulation || {};
+
+    if (side === "over") return sim.probOver ?? -999;
+    if (side === "under") return sim.probUnder ?? -999;
+    return -999;
+  };
+
+  filteredPredictions.sort((a, b) => {
+    const aSettled = a.settled === true || a.result;
+    const bSettled = b.settled === true || b.result;
+
+    if (sort === "highest_ev") {
+      return chosenEVForPick(b) - chosenEVForPick(a);
+    }
+
+    if (sort === "highest_prob") {
+      return chosenProbForPick(b) - chosenProbForPick(a);
+    }
+
+    if (sort === "pending_first") {
+      return Number(aSettled) - Number(bSettled);
+    }
+
+    if (sort === "settled_first") {
+      return Number(bSettled) - Number(aSettled);
+    }
+
+    return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+  });
+
+
+  
+
+  const filterHtml = `
+    <div class="muted" style="margin:8px 0;">
+      Showing ${esc(filteredPredictions.length)} pick(s) for filter: ${esc(filter)} | Sort: ${esc(sort)}
+    </div>
+  `;
+
+  const cardsHtml = filteredPredictions.map((p) => {
+    const isSettled = p.settled === true || p.result;
+    const side = p.side || "";
+    const sim = p.simulation || {};
+
+    const chosenProb =
+      side.toLowerCase() === "over"
+        ? sim.probOver
+        : side.toLowerCase() === "under"
+          ? sim.probUnder
+          : null;
+
+    const chosenEV =
+      side.toLowerCase() === "over"
+        ? sim.overEV
+        : side.toLowerCase() === "under"
+          ? sim.underEV
+          : null;
+
+    const statusHtml = isSettled
+      ? `
+        <div class="detail-row">
+          <strong>Status:</strong> Settled
+          | <strong>Result:</strong> ${esc(p.result || "")}
+          | <strong>Actual Ks:</strong> ${esc(p.actual ?? "")}
+        </div>
+      `
+      : `
+        <div class="detail-row">
+          <strong>Status:</strong> Pending
+        </div>
+        <button
+          class="settle-btn"
+          data-id="${esc(p.id)}"
+          data-game="${esc(p.matchup?.gameId ?? "")}"
+          data-pitcher="${esc(p.pitcher?.id ?? "")}"
+        >
+          Settle
+        </button>
+      `;
+
+    return `
+      <div class="detail-card">
+        ${statusHtml}
+
+        <h3 style="margin-bottom:6px;">
+          ${esc(p.pitcher?.fullName || "Unknown Pitcher")}
+        </h3>
+
+        <div class="detail-row">
+          <strong>Opponent:</strong> ${esc(p.matchup?.opponentTeam || "")}
+        </div>
+
+        <div class="detail-row">
+          <strong>Pick:</strong> ${esc(side)} ${esc(p.line ?? "")} Ks
+        </div>
+
+        <div class="detail-row">
+          <strong>Projection:</strong> ${esc(p.projection?.strikeouts ?? "")}
+        </div>
+
+        <div class="detail-row">
+          <strong>Model Prob:</strong>
+          ${chosenProb != null ? esc(Math.round(chosenProb * 100) + "%") : ""}
+        </div>
+
+        <div class="detail-row">
+          <strong>EV:</strong>
+          ${chosenEV != null ? esc(chosenEV.toFixed(2)) : ""}
+        </div>
+
+        <div class="detail-row">
+          <strong>EV Lean:</strong> ${esc(sim.evLean || "")}
+        </div>
+
+        <div class="muted" style="margin-top:8px;">
+          Over: ${esc(Math.round((sim.probOver || 0) * 100))}%
+          | Under: ${esc(Math.round((sim.probUnder || 0) * 100))}%
+        </div>
+
+        <div class="muted">
+          Over EV: ${sim.overEV != null ? esc(sim.overEV.toFixed(2)) : ""}
+          | Under EV: ${sim.underEV != null ? esc(sim.underEV.toFixed(2)) : ""}
+        </div>
+
+        <div class="muted">
+          Tracked: ${esc(p.createdAt || "")}
+        </div>
+
+        ${
+          p.settledAt
+            ? `<div class="muted">Settled: ${esc(p.settledAt)}</div>`
+            : ""
+        }
+      </div>
+    `;
+  }).join("");
+
+  els.trackedOut.innerHTML = metricsHtml + filterHtml + cardsHtml;
+}
+
+
+
+
+export function renderBestPicks(data) {
+  const predictions = data?.predictions || [];
+
+  const pendingPlusEV = predictions
+    .filter((p) => !(p.settled === true || p.result))
+    .map((p) => {
+      const side = (p.side || "").toLowerCase();
+      const sim = p.simulation || {};
+
+      const chosenEV =
+        side === "over"
+          ? sim.overEV
+          : side === "under"
+            ? sim.underEV
+            : null;
+
+      const chosenProb =
+        side === "over"
+          ? sim.probOver
+          : side === "under"
+            ? sim.probUnder
+            : null;
+
+      return {
+        ...p,
+        chosenEV,
+        chosenProb,
+      };
+    })
+    .filter((p) => p.chosenEV != null && p.chosenEV > 0)
+    .sort((a, b) => b.chosenEV - a.chosenEV)
+    .slice(0, 5);
+
+  if (!pendingPlusEV.length) {
+    els.bestPicksOut.innerHTML = `<div class="muted">No pending +EV picks right now.</div>`;
+    return;
+  }
+
+  els.bestPicksOut.innerHTML = pendingPlusEV.map((p, idx) => `
+    <div class="detail-card">
+      <h3>#${idx + 1} ${esc(p.pitcher?.fullName || "Unknown Pitcher")}</h3>
+
+      <div class="detail-row">
+        <strong>Pick:</strong> ${esc(p.side || "")} ${esc(p.line ?? "")} Ks
+      </div>
+
+      <div class="detail-row">
+        <strong>Opponent:</strong> ${esc(p.matchup?.opponentTeam || "")}
+      </div>
+
+      <div class="detail-row">
+        <strong>Projection:</strong> ${esc(p.projection?.strikeouts ?? "")}
+      </div>
+
+      <div class="detail-row">
+        <strong>Model Prob:</strong>
+        ${p.chosenProb != null ? esc(Math.round(p.chosenProb * 100) + "%") : ""}
+      </div>
+
+      <div class="detail-row">
+        <strong>EV:</strong>
+        ${p.chosenEV != null ? esc(p.chosenEV.toFixed(2)) : ""}
+      </div>
+
+      <div class="detail-row">
+        <strong>EV Lean:</strong> ${esc(p.simulation?.evLean || "")}
+      </div>
+
+      <div class="muted">
+        Tracked: ${esc(p.createdAt || "")}
+      </div>
+    </div>
+  `).join("");
 }

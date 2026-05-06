@@ -36,6 +36,42 @@
       <div id="pitcherGameLog"></div>
     </section>
 
+    <section class="card">
+      <h2>Daily Best Picks</h2>
+      <div id="bestPicksOut" class="muted">No best picks loaded yet.</div>
+    </section>
+
+    <section class="card">
+      <h2>Tracked Picks</h2>
+      <button id="trackBtn">Track Current Pick</button>
+      <button id="refreshTrackedBtn">Refresh Tracked</button>
+      <button id="settleAllBtn">Settle All Pending</button>
+      <div id="trackStatus" class="muted"></div>
+
+      <div style="margin:10px 0;">
+        <select id="trackedFilter">
+          <option value="all">All picks</option>
+          <option value="pending">Pending only</option>
+          <option value="settled">Settled only</option>
+          <option value="plus_ev">+EV only</option>
+        </select>
+      </div>
+
+      <div style="margin:10px 0;">
+        <select id="trackedSort">
+          <option value="newest">Newest first</option>
+          <option value="highest_ev">Highest EV</option>
+          <option value="highest_prob">Highest probability</option>
+          <option value="pending_first">Pending first</option>
+          <option value="settled_first">Settled first</option>
+        </select>
+      </div>
+
+
+      <div id="trackedOut"></div>
+    </section>
+
+
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>

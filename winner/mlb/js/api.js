@@ -7,7 +7,30 @@ async function getJson(url) {
   }
 
   return data;
-}export const api = {
+}
+
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body || {}),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data.error || `Request failed: ${res.status}`);
+  }
+
+  return data;
+}
+
+
+
+
+export const api = {
   health() {
     return getJson("/api/mlb/health");
   },
@@ -15,6 +38,18 @@ async function getJson(url) {
   scoreboard(date = "") {
     const qs = date ? `?date=${encodeURIComponent(date)}` : "";
     return getJson(`/api/mlb/scoreboard${qs}`);
+  },
+
+  settle(payload) {
+    return postJson("/api/mlb/settle", payload);
+  },
+  
+  tracked() {
+    return getJson("/api/mlb/tracked");
+  },
+
+  track(payload) {
+    return postJson("/api/mlb/track", payload);
   },
 
   pitcher(pitcherId) {
@@ -25,6 +60,10 @@ async function getJson(url) {
     return getJson(
       `/api/mlb/pitcher_gamelog?pitcherId=${encodeURIComponent(pitcherId)}&limit=${encodeURIComponent(limit)}`
     );
+  },
+
+  settleAll() {
+  return postJson("/api/mlb/settle_all", {});
   },
 
   pitcherProjection(pitcherId, limit = 5) {
@@ -41,3 +80,7 @@ async function getJson(url) {
     return getJson(`/api/mlb/lineup?gameId=${encodeURIComponent(gameId)}`);
   },
 };
+
+
+
+

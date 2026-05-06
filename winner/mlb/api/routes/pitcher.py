@@ -3,9 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from mlb.api.client import get_person, get_pitcher_game_log, get_schedule
+from mlb.api.client import get_person, get_pitcher_game_log, get_schedule, get_game_boxscore
 from mlb.api.team_stats import get_team_k_adjustment_for_opponent
 from mlb.api.projection import build_pitcher_projection
+from mlb.api.client import get_game_boxscore
+from mlb.api.routes.lineup import _extract_team_batters
+from mlb.api.lineup_env import build_lineup_k_environment
+from mlb.api.lines import lines_for_pitcher_strikeouts
+from mlb.api.simulator import simulate_strikeouts
+
 
 
 def _first(qs, key: str, default: str = "") -> str:
@@ -234,6 +240,57 @@ def get_pitcher_gamelog(qs):
         "games": games,
         "debug": debug,
     }
+    
+def _get_lineup_environment_for_matchup(matchup: dict, season: str) -> dict:
+    game_id = matchup.get("gameId")
+    opponent_team = matchup.get("opponentTeam")
+
+    if not game_id or not opponent_team:
+        return {
+            "source": "lineup_env_missing_game",
+            "adjustment": None,
+            "lineupKRate": None,
+            "hittersUsed": 0,
+        }
+
+    try:
+        payload = get_game_boxscore(str(game_id))
+        teams = payload.get("teams") or {}
+
+        away = teams.get("away") or {}
+        home = teams.get("home") or {}
+
+        away_team = (away.get("team") or {}).get("name")
+        home_team = (home.get("team") or {}).get("name")
+
+        if away_team == opponent_team:
+            batters = _extract_team_batters(away)
+        elif home_team == opponent_team:
+            batters = _extract_team_batters(home)
+        else:
+            batters = []
+
+        if not batters:
+            return {
+                "source": "lineup_env_not_posted",
+                "adjustment": None,
+                "lineupKRate": None,
+                "hittersUsed": 0,
+            }
+
+        env = build_lineup_k_environment(batters, season)
+        return env
+
+    except Exception as e:
+        return {
+            "source": "lineup_env_error",
+            "error": str(e),
+            "adjustment": None,
+            "lineupKRate": None,
+            "hittersUsed": 0,
+        }
+    
+    
 def get_pitcher_projection(qs):
     pitcher_id = _first(qs, "pitcherId").strip()
     season = _first(qs, "season", _current_season_year()).strip()
@@ -259,22 +316,75 @@ def get_pitcher_projection(qs):
     # --- Matchup ---
     matchup = _find_today_opponent_for_pitcher(pitcher_id, date_iso)
     opponent_team = matchup.get("opponentTeam")
-
     pitcher_hand = ((person.get("pitchHand") or {}).get("description"))
 
-    # --- Opponent environment ---
-    opp_env = get_team_k_adjustment_for_opponent(
+    # --- Team-level opponent environment ---
+    team_opp_env = get_team_k_adjustment_for_opponent(
         opponent_team,
         season,
         pitcher_hand=pitcher_hand,
     )
-    opponent_adjustment = opp_env.get("adjustment", 1.0)
+
+    # --- Lineup-level opponent environment ---
+    lineup_opp_env = _get_lineup_environment_for_matchup(matchup, season)
+
+    lineup_adj = lineup_opp_env.get("adjustment")
+    team_adj = team_opp_env.get("adjustment", 1.0)
+
+    if lineup_adj is not None:
+        opponent_adjustment = lineup_adj
+        opp_env = {
+            **team_opp_env,
+            "source": "lineup_override",
+            "teamAdjustment": team_adj,
+            "lineupAdjustment": lineup_adj,
+            "lineupKRate": lineup_opp_env.get("lineupKRate"),
+            "lineupSource": lineup_opp_env.get("source"),
+            "hittersUsed": lineup_opp_env.get("hittersUsed"),
+        }
+    else:
+        opponent_adjustment = team_adj
+        opp_env = {
+            **team_opp_env,
+            "teamAdjustment": team_adj,
+            "lineupAdjustment": None,
+            "lineupKRate": lineup_opp_env.get("lineupKRate"),
+            "lineupSource": lineup_opp_env.get("source"),
+            "hittersUsed": lineup_opp_env.get("hittersUsed"),
+        }
 
     # --- Projection ---
     proj = build_pitcher_projection(
         season=season_stats,
         recent_games=recent_games,
         opponent_adjustment=opponent_adjustment,
+    )
+
+    # --- Underdog line + odds ---
+    ud_lines = lines_for_pitcher_strikeouts(person.get("fullName") or "")
+
+    strikeout_line = None
+    over_odds = None
+    under_odds = None
+
+    for line in ud_lines:
+        if line.get("statKey") == "pitcher_strikeouts":
+            strikeout_line = line.get("line")
+            over_odds = line.get("overOdds")
+            under_odds = line.get("underOdds")
+            break
+
+    # --- Simulation / probability / EV ---
+    p = proj.get("projection") or {}
+
+    simulation = simulate_strikeouts(
+        expected_bf=p.get("expectedBattersFaced"),
+        adjusted_k_pct=p.get("adjustedKPct"),
+        line=strikeout_line,
+        over_odds=over_odds,
+        under_odds=under_odds,
+        workload_volatility=((p.get("workload") or {}).get("volatility") or "medium"),
+        n_sims=10000,
     )
 
     return 200, {
@@ -289,5 +399,10 @@ def get_pitcher_projection(qs):
         "matchup": matchup,
         "opponentEnvironment": opp_env,
         **proj,
+        "simulation": simulation,
         "debug": debug,
     }
+    
+    
+    
+    

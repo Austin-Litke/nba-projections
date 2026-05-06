@@ -1,4 +1,4 @@
-import { loadHealth, loadScoreboard, wireUi } from "./app.js";
+import { loadHealth, loadScoreboard, loadTracked, wireUi } from "./app.js";
 
 async function boot() {
   wireUi();
@@ -14,6 +14,13 @@ async function boot() {
     await loadScoreboard();
   } catch (err) {
     const el = document.getElementById("scoreboardOut");
+    if (el) el.textContent = String(err);
+  }
+
+  try {
+    await loadTracked();
+  } catch (err) {
+    const el = document.getElementById("trackedOut");
     if (el) el.textContent = String(err);
   }
 }

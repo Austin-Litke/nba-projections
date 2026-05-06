@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Iterable
-
+from mlb.api.workload import build_workload_adjustment
 
 LEAGUE_BASELINES = {
     "starter_bf_per_start": 22.0,
@@ -106,7 +106,6 @@ def recent_k_pct(games: Iterable[dict]) -> float:
         total_k += k
     return _safe_div(total_k, total_bf, 0.0)
 
-
 def build_pitcher_projection(
     season: dict,
     recent_games: list[dict],
@@ -133,8 +132,18 @@ def build_pitcher_projection(
         if raw_r_bf <= 0:
             raw_r_bf = raw_s_bf
 
-        s_bf = _stabilize(raw_s_bf, LEAGUE_BASELINES["starter_bf_per_start"], season_starts, full_weight_at=8)
-        r_bf = _stabilize(raw_r_bf, LEAGUE_BASELINES["starter_bf_per_start"], recent_n, full_weight_at=5)
+        s_bf = _stabilize(
+            raw_s_bf,
+            LEAGUE_BASELINES["starter_bf_per_start"],
+            season_starts,
+            full_weight_at=8,
+        )
+        r_bf = _stabilize(
+            raw_r_bf,
+            LEAGUE_BASELINES["starter_bf_per_start"],
+            recent_n,
+            full_weight_at=5,
+        )
         expected_bf = (0.65 * r_bf) + (0.35 * s_bf)
 
     elif role == "reliever":
@@ -142,7 +151,12 @@ def build_pitcher_projection(
             raw_r_bf = LEAGUE_BASELINES["reliever_bf_per_app"]
 
         s_bf = LEAGUE_BASELINES["reliever_bf_per_app"]
-        r_bf = _stabilize(raw_r_bf, LEAGUE_BASELINES["reliever_bf_per_app"], recent_n, full_weight_at=6)
+        r_bf = _stabilize(
+            raw_r_bf,
+            LEAGUE_BASELINES["reliever_bf_per_app"],
+            recent_n,
+            full_weight_at=6,
+        )
         expected_bf = _clamp(r_bf, 3.0, 9.0)
 
     else:
@@ -152,16 +166,40 @@ def build_pitcher_projection(
         if raw_r_bf <= 0:
             raw_r_bf = uncertain_base
 
-        s_bf = _stabilize(raw_s_bf, LEAGUE_BASELINES["starter_bf_per_start"], season_starts, full_weight_at=8)
-        r_bf = _stabilize(raw_r_bf, uncertain_base, recent_n, full_weight_at=5)
+        s_bf = _stabilize(
+            raw_s_bf,
+            LEAGUE_BASELINES["starter_bf_per_start"],
+            season_starts,
+            full_weight_at=8,
+        )
+        r_bf = _stabilize(
+            raw_r_bf,
+            uncertain_base,
+            recent_n,
+            full_weight_at=5,
+        )
         expected_bf = _clamp(
             (0.60 * r_bf) + (0.40 * s_bf),
             LEAGUE_BASELINES["reliever_bf_per_app"],
             LEAGUE_BASELINES["starter_bf_per_start"],
         )
 
-    s_kpct = _stabilize(raw_s_kpct, LEAGUE_BASELINES["k_pct"], season_starts, full_weight_at=8)
-    r_kpct = _stabilize(raw_r_kpct, LEAGUE_BASELINES["k_pct"], recent_n, full_weight_at=5)
+    workload = build_workload_adjustment(role, recent_games)
+    base_expected_bf = expected_bf
+    expected_bf = expected_bf * workload.get("adjustment", 1.0)
+
+    s_kpct = _stabilize(
+        raw_s_kpct,
+        LEAGUE_BASELINES["k_pct"],
+        season_starts,
+        full_weight_at=8,
+    )
+    r_kpct = _stabilize(
+        raw_r_kpct,
+        LEAGUE_BASELINES["k_pct"],
+        recent_n,
+        full_weight_at=5,
+    )
 
     blended_kpct = (0.60 * r_kpct) + (0.40 * s_kpct)
 
@@ -172,13 +210,15 @@ def build_pitcher_projection(
 
     return {
         "projection": {
+            "baseExpectedBattersFaced": round(base_expected_bf, 2),
             "expectedBattersFaced": round(expected_bf, 2),
             "kPct": round(blended_kpct, 3),
             "adjustedKPct": round(adjusted_kpct, 3),
             "strikeouts": round(projected_ks, 2),
             "confidence": _confidence_label(recent_n, season_starts),
             "role": role,
-            "modelVersion": "phase2_bf_kpct_v2",
+            "modelVersion": "phase4_workload_bf_kpct",
+            "workload": workload,
         },
         "season": {
             "inningsPitched": season.get("inningsPitched"),
@@ -214,3 +254,5 @@ def build_pitcher_projection(
             "opponentAdjustment": round(opp_adj, 3),
         },
     }
+    
+    

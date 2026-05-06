@@ -67,3 +67,13 @@ def get_schedule_range_with_boxscore(start_date: str, end_date: str):
 def get_game_boxscore(game_pk: str):
     url = f"{MLB_STATS_API}/game/{game_pk}/boxscore"
     return http_get_json(url)
+
+
+
+
+def get_hitter_stats(person_id: str, season: str):
+    params = {
+        "hydrate": "stats(group=[hitting],type=[season])",
+    }
+    url = f"{MLB_STATS_API}/people/{person_id}?{urllib.parse.urlencode(params)}"
+    return http_get_json(url)

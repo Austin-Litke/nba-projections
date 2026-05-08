@@ -35,6 +35,14 @@ export const api = {
     return getJson("/api/mlb/health");
   },
 
+  bestPicks() {
+  return getJson("/api/mlb/best_picks");
+  },
+
+  updateClv(payload) {
+    return postJson("/api/mlb/update_clv", payload);
+  },
+
   scoreboard(date = "") {
     const qs = date ? `?date=${encodeURIComponent(date)}` : "";
     return getJson(`/api/mlb/scoreboard${qs}`);

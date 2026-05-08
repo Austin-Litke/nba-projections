@@ -379,13 +379,183 @@ export function renderPitcherLineup(lineupData, projectionData) {
   `;
 }
 
+function renderEvBuckets(metrics) {
+  const buckets = metrics?.evBuckets || {};
+
+  const labels = {
+    "0-5": "0% to 5%",
+    "5-10": "5% to 10%",
+    "10-20": "10% to 20%",
+    "20-40": "20% to 40%",
+    "40+": "40%+",
+  };
+
+  const order = ["0-5", "5-10", "10-20", "20-40", "40+"];
+
+  return `
+    <div style="margin-top:10px;"><strong>EV Buckets</strong></div>
+    ${order.map((bucket) => {
+      const row = buckets[bucket];
+
+      if (!row || !row.count) {
+        return `
+          <div class="muted">
+            ${esc(labels[bucket] || bucket)}: no settled picks
+          </div>
+        `;
+      }
+
+      return `
+        <div class="muted">
+          ${esc(labels[bucket] || bucket)}:
+          ${esc(row.record || "0-0-0")}
+          ${
+            row.winRate != null
+              ? ` | Win Rate: ${esc(Math.round(row.winRate * 100) + "%")}`
+              : ""
+          }
+          ${
+            row.units != null
+              ? ` | Units: ${esc(Number(row.units).toFixed(2))}`
+              : ""
+          }
+          ${
+            row.roi != null
+              ? ` | ROI: ${esc(Math.round(row.roi * 100) + "%")}`
+              : ""
+          }
+          ${
+            row.averageEV != null
+              ? ` | Avg EV: ${esc(Number(row.averageEV).toFixed(2))}`
+              : ""
+          }
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
+
+function renderEvBucketsBySide(metrics) {
+  const data = metrics?.evBucketsBySide || {};
+
+  const labels = {
+    "0-5": "0% to 5%",
+    "5-10": "5% to 10%",
+    "10-20": "10% to 20%",
+    "20-40": "20% to 40%",
+    "40+": "40%+",
+  };
+
+  const order = ["0-5", "5-10", "10-20", "20-40", "40+"];
+
+  const renderSide = (side) => {
+    const buckets = data[side] || {};
+
+    return `
+      <div style="margin-top:8px;"><strong>${esc(side.toUpperCase())}</strong></div>
+      ${order.map((bucket) => {
+        const row = buckets[bucket];
+
+        if (!row || !row.count) {
+          return `
+            <div class="muted">
+              ${esc(labels[bucket] || bucket)}: no settled picks
+            </div>
+          `;
+        }
+
+        return `
+          <div class="muted">
+            ${esc(labels[bucket] || bucket)}:
+            ${esc(row.record || "0-0-0")}
+            ${
+              row.winRate != null
+                ? ` | Win Rate: ${esc(Math.round(row.winRate * 100) + "%")}`
+                : ""
+            }
+            ${
+              row.units != null
+                ? ` | Units: ${esc(Number(row.units).toFixed(2))}`
+                : ""
+            }
+            ${
+              row.roi != null
+                ? ` | ROI: ${esc(Math.round(row.roi * 100) + "%")}`
+                : ""
+            }
+            ${
+              row.averageEV != null
+                ? ` | Avg EV: ${esc(Number(row.averageEV).toFixed(2))}`
+                : ""
+            }
+          </div>
+        `;
+      }).join("")}
+    `;
+  };
+
+  return `
+    <div style="margin-top:10px;"><strong>EV Buckets by Side</strong></div>
+    ${renderSide("over")}
+    ${renderSide("under")}
+  `;
+}
+
+function renderLineBuckets(metrics) {
+  const buckets = metrics?.lineBuckets || {};
+  const order = ["3.5", "4.5", "5.5", "6.5+"];
+
+  return `
+    <div style="margin-top:10px;"><strong>Line Number Performance</strong></div>
+    ${order.map((bucket) => {
+      const row = buckets[bucket];
+
+      if (!row || !row.count) {
+        return `
+          <div class="muted">
+            ${esc(bucket)} Ks: no settled picks
+          </div>
+        `;
+      }
+
+      return `
+        <div class="muted">
+          ${esc(bucket)} Ks:
+          ${esc(row.record || "0-0-0")}
+          ${
+            row.winRate != null
+              ? ` | Win Rate: ${esc(Math.round(row.winRate * 100) + "%")}`
+              : ""
+          }
+          ${
+            row.units != null
+              ? ` | Units: ${esc(Number(row.units).toFixed(2))}`
+              : ""
+          }
+          ${
+            row.roi != null
+              ? ` | ROI: ${esc(Math.round(row.roi * 100) + "%")}`
+              : ""
+          }
+          ${
+            row.averageEV != null
+              ? ` | Avg EV: ${esc(Number(row.averageEV).toFixed(2))}`
+              : ""
+          }
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
+
 export function renderTracked(data) {
   const predictions = data?.predictions || [];
   const filter = els.trackedFilter?.value || "all";
   const sort = els.trackedSort?.value || "newest";
   const metrics = data?.metrics || {};
   const counts = data?.counts || {};
-  
 
   if (!predictions.length) {
     els.trackedOut.innerHTML = `<div class="muted">No tracked picks yet.</div>`;
@@ -401,7 +571,6 @@ export function renderTracked(data) {
         | Settled: ${esc(counts.settled ?? 0)}
         | +EV: ${esc(counts.plusEV ?? 0)}
       </div>
-
 
       <div><strong>Record:</strong> ${esc(metrics.record || "0-0-0")}</div>
       <div><strong>Win Rate:</strong> ${
@@ -436,13 +605,16 @@ export function renderTracked(data) {
         </div>
       `).join("")}
 
+
+      ${renderEvBuckets(metrics)}
+      ${renderEvBucketsBySide(metrics)}
+      ${renderLineBuckets(metrics)}
+
       <div class="muted" style="margin-top:8px;">
         Settled Picks: ${esc(metrics.settled ?? 0)}
       </div>
     </div>
   `;
-
-
 
   const filteredPredictions = predictions.filter((p) => {
     const isSettled = p.settled === true || p.result;
@@ -462,7 +634,6 @@ export function renderTracked(data) {
 
     return true;
   });
-
 
   const chosenEVForPick = (p) => {
     const side = (p.side || "").toLowerCase();
@@ -504,9 +675,6 @@ export function renderTracked(data) {
 
     return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
   });
-
-
-  
 
   const filterHtml = `
     <div class="muted" style="margin:8px 0;">
@@ -555,9 +723,34 @@ export function renderTracked(data) {
         </button>
       `;
 
+    const clvHtml = p.clv
+      ? `
+        <div class="detail-row">
+          <strong>CLV:</strong> ${esc(p.clv.clvSide || "")}
+          | Original: ${esc(p.clv.originalLine ?? "")}
+          | Current: ${esc(p.clv.currentLine ?? "")}
+          | Move: ${esc(p.clv.lineMove ?? "")}
+        </div>
+        <div class="muted">
+          Current Odds — Over: ${esc(p.clv.currentOverOdds ?? "")}
+          | Under: ${esc(p.clv.currentUnderOdds ?? "")}
+        </div>
+      `
+      : `<div class="muted">CLV not updated yet.</div>`;
+
     return `
       <div class="detail-card">
         ${statusHtml}
+
+        <button
+          class="clv-btn"
+          data-id="${esc(p.id)}"
+          data-pitcher-name="${esc(p.pitcher?.fullName || "")}"
+          data-side="${esc(p.side || "")}"
+          data-line="${esc(p.line ?? "")}"
+        >
+          Update CLV
+        </button>
 
         <h3 style="margin-bottom:6px;">
           ${esc(p.pitcher?.fullName || "Unknown Pitcher")}
@@ -589,6 +782,8 @@ export function renderTracked(data) {
           <strong>EV Lean:</strong> ${esc(sim.evLean || "")}
         </div>
 
+        ${clvHtml}
+
         <div class="muted" style="margin-top:8px;">
           Over: ${esc(Math.round((sim.probOver || 0) * 100))}%
           | Under: ${esc(Math.round((sim.probUnder || 0) * 100))}%
@@ -614,8 +809,6 @@ export function renderTracked(data) {
 
   els.trackedOut.innerHTML = metricsHtml + filterHtml + cardsHtml;
 }
-
-
 
 
 export function renderBestPicks(data) {
@@ -692,3 +885,118 @@ export function renderBestPicks(data) {
     </div>
   `).join("");
 }
+
+
+export function renderAutoBestPicks(data, trackedData = null) {
+  const picks = data?.picks || [];
+  const tracked = trackedData?.predictions || [];
+
+  const filter = els.bestPicksFilter?.value || "all";
+  const sort = els.bestPicksSort?.value || "highest_ev";
+
+  const trackedKeys = new Set(
+    tracked.map((p) => {
+      const pitcherId = p.pitcher?.id;
+      const gameId = p.matchup?.gameId;
+      const side = p.side;
+      const line = p.line;
+      return `${pitcherId}|${gameId}|${side}|${line}`;
+    })
+  );
+
+  let visiblePicks = picks.map((p, originalIndex) => {
+    const key = `${p.pitcher?.id}|${p.matchup?.gameId}|${p.side}|${p.line}`;
+    return {
+      ...p,
+      originalIndex,
+      alreadyTracked: trackedKeys.has(key),
+    };
+  });
+
+  if (filter === "strong_ev") {
+    visiblePicks = visiblePicks.filter((p) => (p.ev ?? 0) >= 0.15);
+  }
+
+  if (filter === "untracked") {
+    visiblePicks = visiblePicks.filter((p) => !p.alreadyTracked);
+  }
+
+  visiblePicks.sort((a, b) => {
+    if (sort === "highest_prob") {
+      return (b.probability ?? -999) - (a.probability ?? -999);
+    }
+
+    return (b.ev ?? -999) - (a.ev ?? -999);
+  });
+
+  if (!visiblePicks.length) {
+    els.bestPicksOut.innerHTML = `
+      <div class="muted">
+        No auto picks match this filter.
+      </div>
+    `;
+    return;
+  }
+
+  els.bestPicksOut.innerHTML = `
+    <div class="muted">
+      Scanned ${esc(data.pitchersScanned ?? "")} pitcher(s)
+      | Found ${esc(data.count ?? picks.length)} +EV play(s)
+      | Showing ${esc(visiblePicks.length)}
+      | Date: ${esc(data.date || "")}
+    </div>
+
+    ${visiblePicks.map((p, idx) => `
+      <div class="detail-card">
+        <h3>#${idx + 1} ${esc(p.pitcher?.fullName || "Unknown Pitcher")}</h3>
+
+        ${
+          p.alreadyTracked
+            ? `<div class="detail-row lean-neutral"><strong>Already tracked</strong></div>`
+            : `
+              <button class="track-auto-btn" data-index="${esc(picks.indexOf(p))}">
+                Track This Pick
+              </button>
+            `
+        }
+
+        <div class="detail-row">
+          <strong>Pick:</strong> ${esc(p.side || "")} ${esc(p.line ?? "")} Ks
+        </div>
+
+        <div class="detail-row">
+          <strong>Opponent:</strong> ${esc(p.matchup?.opponentTeam || "")}
+        </div>
+
+        <div class="detail-row">
+          <strong>Projection:</strong> ${esc(p.projection?.strikeouts ?? "")}
+        </div>
+
+        <div class="detail-row">
+          <strong>Probability:</strong>
+          ${p.probability != null ? esc(Math.round(p.probability * 100) + "%") : ""}
+        </div>
+
+        <div class="detail-row">
+          <strong>EV:</strong> ${p.ev != null ? esc(p.ev.toFixed(2)) : ""}
+        </div>
+
+        <div class="detail-row">
+          <strong>EV Lean:</strong> ${esc(p.simulation?.evLean || "")}
+        </div>
+
+        <div class="muted">
+          Over: ${esc(Math.round((p.simulation?.probOver || 0) * 100))}%
+          | Under: ${esc(Math.round((p.simulation?.probUnder || 0) * 100))}%
+        </div>
+
+        <div class="muted">
+          Team Adj: ${esc(p.opponentEnvironment?.teamAdjustment ?? "")}
+          | Lineup Adj: ${esc(p.opponentEnvironment?.lineupAdjustment ?? "")}
+          | Source: ${esc(p.opponentEnvironment?.source || "")}
+        </div>
+      </div>
+    `).join("")}
+  `;
+}
+

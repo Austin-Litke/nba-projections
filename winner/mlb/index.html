@@ -38,7 +38,31 @@
 
     <section class="card">
       <h2>Daily Best Picks</h2>
-      <div id="bestPicksOut" class="muted">No best picks loaded yet.</div>
+
+      <button id="scanBestPicksBtn">
+        Scan Today
+      </button>
+
+      <button id="trackAllBestPicksBtn">Track All +EV</button>
+
+      <div id="bestPicksOut" class="muted">
+        No best picks loaded yet.
+      </div>
+
+      <div style="margin:10px 0;">
+        <select id="bestPicksFilter">
+          <option value="all">All +EV</option>
+          <option value="strong_ev">Strong +EV only</option>
+          <option value="untracked">Untracked only</option>
+        </select>
+
+        <select id="bestPicksSort">
+          <option value="highest_ev">Highest EV</option>
+          <option value="highest_prob">Highest probability</option>
+        </select>
+      </div>
+
+
     </section>
 
     <section class="card">

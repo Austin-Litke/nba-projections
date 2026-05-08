@@ -182,9 +182,9 @@
     {
       "id": 3,
       "createdAt": "2026-05-06T12:01:36.722827-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 7.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -266,14 +266,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:42.347021-05:00"
     },
     {
       "id": 4,
       "createdAt": "2026-05-06T12:17:54.017618-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 2.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -355,14 +356,15 @@
         "lineupSource": "lineup_k_env_weighted_stabilized",
         "hittersUsed": 9
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-06T16:29:11.512398-05:00"
     },
     {
       "id": 5,
       "createdAt": "2026-05-06T12:18:16.841510-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 4.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -443,14 +445,15 @@
         "lineupSource": "lineup_k_env_weighted_stabilized",
         "hittersUsed": 9
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-06T16:29:18.471104-05:00"
     },
     {
       "id": 6,
       "createdAt": "2026-05-06T12:18:44.249040-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 0.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -531,14 +534,15 @@
         "lineupSource": "lineup_k_env_weighted_stabilized",
         "hittersUsed": 9
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:42.233420-05:00"
     },
     {
       "id": 7,
       "createdAt": "2026-05-06T12:19:06.503865-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 3.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -620,14 +624,15 @@
         "lineupSource": "lineup_k_env_weighted_stabilized",
         "hittersUsed": 9
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:42.161624-05:00"
     },
     {
       "id": 8,
       "createdAt": "2026-05-06T12:21:55.999904-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 3.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -708,14 +713,15 @@
         "lineupSource": "lineup_k_env_weighted_stabilized",
         "hittersUsed": 9
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:42.000629-05:00"
     },
     {
       "id": 9,
       "createdAt": "2026-05-06T12:22:11.705846-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 5.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -797,14 +803,15 @@
         "lineupSource": "lineup_k_env_weighted_stabilized",
         "hittersUsed": 9
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:41.900511-05:00"
     },
     {
       "id": 10,
       "createdAt": "2026-05-06T12:23:35.204649-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 5.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -885,14 +892,15 @@
         "lineupSource": "lineup_k_env_weighted_stabilized",
         "hittersUsed": 9
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:41.758632-05:00"
     },
     {
       "id": 11,
       "createdAt": "2026-05-06T12:24:00.632783-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 9.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -973,14 +981,15 @@
         "lineupSource": "lineup_k_env_weighted_stabilized",
         "hittersUsed": 9
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:41.687642-05:00"
     },
     {
       "id": 12,
       "createdAt": "2026-05-06T12:24:18.293706-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 2.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -1062,14 +1071,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:41.550521-05:00"
     },
     {
       "id": 13,
       "createdAt": "2026-05-06T12:24:30.101980-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 10.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -1151,14 +1161,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:41.475096-05:00"
     },
     {
       "id": 14,
       "createdAt": "2026-05-06T12:24:46.803907-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 4.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -1240,14 +1251,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:41.340104-05:00"
     },
     {
       "id": 15,
       "createdAt": "2026-05-06T12:25:01.307867-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 4.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -1328,14 +1340,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:41.227650-05:00"
     },
     {
       "id": 16,
       "createdAt": "2026-05-06T12:25:17.263308-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 5.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -1416,14 +1429,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:41.110673-05:00"
     },
     {
       "id": 17,
       "createdAt": "2026-05-06T12:25:28.692706-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 6.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -1504,14 +1518,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:41.032699-05:00"
     },
     {
       "id": 18,
       "createdAt": "2026-05-06T12:25:39.232495-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 3.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -1593,14 +1608,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:40.875089-05:00"
     },
     {
       "id": 19,
       "createdAt": "2026-05-06T12:25:49.277178-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 3.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -1683,14 +1699,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:40.805007-05:00"
     },
     {
       "id": 20,
       "createdAt": "2026-05-06T12:26:01.509922-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 8.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -1771,14 +1788,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:40.638031-05:00"
     },
     {
       "id": 21,
       "createdAt": "2026-05-06T12:26:21.769721-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 7.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -1859,14 +1877,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:40.520074-05:00"
     },
     {
       "id": 22,
       "createdAt": "2026-05-06T12:26:50.881862-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 6.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -1947,14 +1966,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:40.406868-05:00"
     },
     {
       "id": 23,
       "createdAt": "2026-05-06T12:27:03.092310-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 5.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -2037,14 +2057,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:40.336320-05:00"
     },
     {
       "id": 24,
       "createdAt": "2026-05-06T12:27:19.433124-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 1.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -2125,14 +2146,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:40.223712-05:00"
     },
     {
       "id": 25,
       "createdAt": "2026-05-06T12:27:44.666745-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 4.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -2216,14 +2238,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:40.109748-05:00"
     },
     {
       "id": 26,
       "createdAt": "2026-05-06T12:27:59.579890-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 1.0,
+      "result": "loss",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -2304,14 +2327,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:39.972602-05:00"
     },
     {
       "id": 27,
       "createdAt": "2026-05-06T12:28:12.019781-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 2.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Under",
@@ -2393,14 +2417,15 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
-      "createdFrom": "mlb_room"
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:39.844292-05:00"
     },
     {
       "id": 28,
       "createdAt": "2026-05-06T12:28:35.309682-05:00",
-      "settled": false,
-      "actual": null,
-      "result": null,
+      "settled": true,
+      "actual": 6.0,
+      "result": "win",
       "sport": "mlb",
       "market": "pitcher_strikeouts",
       "side": "Over",
@@ -2481,7 +2506,1219 @@
         "lineupSource": "lineup_env_not_posted",
         "hittersUsed": 0
       },
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T13:18:39.646537-05:00"
+    },
+    {
+      "id": 29,
+      "createdAt": "2026-05-07T13:22:42.173850-05:00",
+      "settled": true,
+      "actual": 3.0,
+      "result": "loss",
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Over",
+      "line": 3.5,
+      "pitcher": {
+        "id": 681035,
+        "fullName": "Christian Scott",
+        "pitchHand": "Right",
+        "teamName": "New York Mets"
+      },
+      "matchup": {
+        "gameId": 824362,
+        "pitcherTeam": "New York Mets",
+        "opponentTeam": "Colorado Rockies",
+        "isHome": false,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 19.39,
+        "expectedBattersFaced": 19.01,
+        "kPct": 0.254,
+        "adjustedKPct": 0.249,
+        "strikeouts": 4.73,
+        "confidence": "low",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 0.98,
+          "risk": "normal",
+          "volatility": "medium",
+          "avgBF": 14.5,
+          "stdBF": 4.5,
+          "avgIP": 3.05,
+          "avgER": 1.5,
+          "avgBB": 5,
+          "shortStartCount": 1,
+          "deepStartCount": 0,
+          "reasons": [
+            "high recent walk pressure"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 4.7,
+        "median": 5,
+        "p10": 2,
+        "p25": 3,
+        "p50": 5,
+        "p75": 6,
+        "p90": 7,
+        "line": 3.5,
+        "probOver": 0.7,
+        "probUnder": 0.3,
+        "probPush": 0,
+        "lean": "Strong Over",
+        "overOdds": -162,
+        "underOdds": 118,
+        "overImplied": 0.618,
+        "underImplied": 0.459,
+        "overEV": 0.133,
+        "underEV": -0.347,
+        "bestEVSide": "Over",
+        "bestEV": 0.133,
+        "evLean": "Lean +EV Over"
+      },
+      "opponentEnvironment": {
+        "teamName": "Colorado Rockies",
+        "pitcherHand": "Right",
+        "kRate": 0.2529,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 1.1,
+        "source": "lineup_override",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vr",
+        "teamAdjustment": 1.1,
+        "lineupAdjustment": 0.979,
+        "lineupKRate": 0.2202,
+        "lineupSource": "lineup_k_env_weighted_stabilized",
+        "hittersUsed": 9
+      },
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T15:07:05.455664-05:00"
+    },
+    {
+      "id": 30,
+      "createdAt": "2026-05-07T13:23:35.588620-05:00",
+      "settled": true,
+      "actual": 2.0,
+      "result": "win",
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 2.5,
+      "pitcher": {
+        "id": 500779,
+        "fullName": "Jose Quintana",
+        "pitchHand": "Left",
+        "teamName": "Colorado Rockies"
+      },
+      "matchup": {
+        "gameId": 824362,
+        "pitcherTeam": "Colorado Rockies",
+        "opponentTeam": "New York Mets",
+        "isHome": true,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 21.13,
+        "expectedBattersFaced": 20.71,
+        "kPct": 0.131,
+        "adjustedKPct": 0.121,
+        "strikeouts": 2.5,
+        "confidence": "medium",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 0.98,
+          "risk": "normal",
+          "volatility": "low",
+          "avgBF": 21,
+          "stdBF": 2.61,
+          "avgIP": 4.68,
+          "avgER": 2.2,
+          "avgBB": 2.75,
+          "shortStartCount": 2,
+          "deepStartCount": 1,
+          "reasons": [
+            "multiple recent short starts",
+            "upward workload trend"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 2.51,
+        "median": 2,
+        "p10": 1,
+        "p25": 1,
+        "p50": 2,
+        "p75": 3,
+        "p90": 5,
+        "line": 2.5,
+        "probOver": 0.461,
+        "probUnder": 0.539,
+        "probPush": 0,
+        "lean": "No edge",
+        "overOdds": -164,
+        "underOdds": 121,
+        "overImplied": 0.621,
+        "underImplied": 0.452,
+        "overEV": -0.258,
+        "underEV": 0.192,
+        "bestEVSide": "Under",
+        "bestEV": 0.192,
+        "evLean": "Strong +EV Under"
+      },
+      "opponentEnvironment": {
+        "teamName": "New York Mets",
+        "pitcherHand": "Left",
+        "kRate": 0.2103,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 0.952,
+        "source": "lineup_override",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vl",
+        "teamAdjustment": 0.952,
+        "lineupAdjustment": 0.923,
+        "lineupKRate": 0.2077,
+        "lineupSource": "lineup_k_env_weighted_stabilized",
+        "hittersUsed": 9
+      },
+      "createdFrom": "mlb_room",
+      "settledAt": "2026-05-07T15:07:26.147225-05:00"
+    },
+    {
+      "id": 31,
+      "createdAt": "2026-05-07T13:24:24.117205-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 4.5,
+      "pitcher": {
+        "id": 656605,
+        "fullName": "Mitch Keller",
+        "pitchHand": "Right",
+        "teamName": "Pittsburgh Pirates"
+      },
+      "matchup": {
+        "gameId": 825090,
+        "pitcherTeam": "Pittsburgh Pirates",
+        "opponentTeam": "Arizona Diamondbacks",
+        "isHome": false,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 23.04,
+        "expectedBattersFaced": 23.04,
+        "kPct": 0.177,
+        "adjustedKPct": 0.17,
+        "strikeouts": 3.91,
+        "confidence": "higher",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 1,
+          "risk": "normal",
+          "volatility": "low",
+          "avgBF": 23,
+          "stdBF": 2.1,
+          "avgIP": 5.8,
+          "avgER": 3,
+          "avgBB": 3,
+          "shortStartCount": 1,
+          "deepStartCount": 4,
+          "reasons": [
+            "high recent walk pressure",
+            "stable recent deep workload"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 3.93,
+        "median": 4,
+        "p10": 2,
+        "p25": 3,
+        "p50": 4,
+        "p75": 5,
+        "p90": 6,
+        "line": 4.5,
+        "probOver": 0.356,
+        "probUnder": 0.644,
+        "probPush": 0,
+        "lean": "Strong Under",
+        "overOdds": 106,
+        "underOdds": -148,
+        "overImplied": 0.485,
+        "underImplied": 0.597,
+        "overEV": -0.267,
+        "underEV": 0.079,
+        "bestEVSide": "Under",
+        "bestEV": 0.079,
+        "evLean": "Lean +EV Under"
+      },
+      "opponentEnvironment": {
+        "teamName": "Arizona Diamondbacks",
+        "pitcherHand": "Right",
+        "kRate": 0.2176,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 0.985,
+        "source": "lineup_override",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vr",
+        "teamAdjustment": 0.985,
+        "lineupAdjustment": 0.96,
+        "lineupKRate": 0.2159,
+        "lineupSource": "lineup_k_env_weighted_stabilized",
+        "hittersUsed": 9
+      },
       "createdFrom": "mlb_room"
+    },
+    {
+      "id": 32,
+      "createdAt": "2026-05-07T13:24:48.225976-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 4.5,
+      "pitcher": {
+        "id": 668678,
+        "fullName": "Zac Gallen",
+        "pitchHand": "Right",
+        "teamName": "Arizona Diamondbacks"
+      },
+      "matchup": {
+        "gameId": 825090,
+        "pitcherTeam": "Arizona Diamondbacks",
+        "opponentTeam": "Pittsburgh Pirates",
+        "isHome": true,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 21.43,
+        "expectedBattersFaced": 21.43,
+        "kPct": 0.137,
+        "adjustedKPct": 0.146,
+        "strikeouts": 3.12,
+        "confidence": "higher",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 1,
+          "risk": "normal",
+          "volatility": "low",
+          "avgBF": 22,
+          "stdBF": 2,
+          "avgIP": 5.04,
+          "avgER": 2.5,
+          "avgBB": 2.33,
+          "shortStartCount": 1,
+          "deepStartCount": 1,
+          "reasons": [
+            "neutral workload profile"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 3.13,
+        "median": 3,
+        "p10": 1,
+        "p25": 2,
+        "p50": 3,
+        "p75": 4,
+        "p90": 5,
+        "line": 4.5,
+        "probOver": 0.199,
+        "probUnder": 0.801,
+        "probPush": 0,
+        "lean": "Strong Under",
+        "overOdds": -130,
+        "underOdds": -105,
+        "overImplied": 0.565,
+        "underImplied": 0.512,
+        "overEV": -0.648,
+        "underEV": 0.564,
+        "bestEVSide": "Under",
+        "bestEV": 0.564,
+        "evLean": "Strong +EV Under"
+      },
+      "opponentEnvironment": {
+        "teamName": "Pittsburgh Pirates",
+        "pitcherHand": "Right",
+        "kRate": 0.2357,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 1.067,
+        "source": "lineup_override",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vr",
+        "teamAdjustment": 1.067,
+        "lineupAdjustment": 1.062,
+        "lineupKRate": 0.2389,
+        "lineupSource": "lineup_k_env_weighted_stabilized",
+        "hittersUsed": 9
+      },
+      "createdFrom": "mlb_room"
+    },
+    {
+      "id": 33,
+      "createdAt": "2026-05-07T13:25:14.989180-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 3.5,
+      "pitcher": {
+        "id": 669372,
+        "fullName": "J.T. Ginn",
+        "pitchHand": "Right",
+        "teamName": "Athletics"
+      },
+      "matchup": {
+        "gameId": 823467,
+        "pitcherTeam": "Athletics",
+        "opponentTeam": "Philadelphia Phillies",
+        "isHome": false,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 16.46,
+        "expectedBattersFaced": 16.13,
+        "kPct": 0.185,
+        "adjustedKPct": 0.177,
+        "strikeouts": 2.85,
+        "confidence": "medium",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 0.98,
+          "risk": "normal",
+          "volatility": "medium",
+          "avgBF": 12.6,
+          "stdBF": 4.96,
+          "avgIP": 3.08,
+          "avgER": 2,
+          "avgBB": 1.75,
+          "shortStartCount": 4,
+          "deepStartCount": 0,
+          "reasons": [
+            "multiple recent short starts",
+            "upward workload trend"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 2.85,
+        "median": 3,
+        "p10": 1,
+        "p25": 2,
+        "p50": 3,
+        "p75": 4,
+        "p90": 5,
+        "line": 3.5,
+        "probOver": 0.317,
+        "probUnder": 0.683,
+        "probPush": 0,
+        "lean": "Strong Under",
+        "overOdds": -205,
+        "underOdds": 149,
+        "overImplied": 0.672,
+        "underImplied": 0.402,
+        "overEV": -0.528,
+        "underEV": 0.7,
+        "bestEVSide": "Under",
+        "bestEV": 0.7,
+        "evLean": "Strong +EV Under"
+      },
+      "opponentEnvironment": {
+        "teamName": "Philadelphia Phillies",
+        "pitcherHand": "Right",
+        "kRate": 0.211,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 0.955,
+        "source": "team_stats_vs_hand",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vr",
+        "teamAdjustment": 0.955,
+        "lineupAdjustment": null,
+        "lineupKRate": null,
+        "lineupSource": "lineup_env_not_posted",
+        "hittersUsed": 0
+      },
+      "createdFrom": "mlb_room",
+      "clv": {
+        "updatedAt": "2026-05-07T15:34:25.066065-05:00",
+        "originalLine": "3.5",
+        "currentLine": 3.5,
+        "lineMove": 0.0,
+        "side": "under",
+        "clvSide": "neutral",
+        "currentOverOdds": -200,
+        "currentUnderOdds": 146
+      }
+    },
+    {
+      "id": 34,
+      "createdAt": "2026-05-07T13:25:35.960368-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 4.5,
+      "pitcher": {
+        "id": 691725,
+        "fullName": "Andrew Painter",
+        "pitchHand": "Right",
+        "teamName": "Philadelphia Phillies"
+      },
+      "matchup": {
+        "gameId": 823467,
+        "pitcherTeam": "Philadelphia Phillies",
+        "opponentTeam": "Athletics",
+        "isHome": true,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 22.75,
+        "expectedBattersFaced": 21.84,
+        "kPct": 0.203,
+        "adjustedKPct": 0.208,
+        "strikeouts": 4.53,
+        "confidence": "medium",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 0.96,
+          "risk": "normal",
+          "volatility": "medium",
+          "avgBF": 21.6,
+          "stdBF": 3.32,
+          "avgIP": 4.66,
+          "avgER": 2.8,
+          "avgBB": 1.2,
+          "shortStartCount": 2,
+          "deepStartCount": 0,
+          "reasons": [
+            "multiple recent short starts"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 4.48,
+        "median": 4,
+        "p10": 2,
+        "p25": 3,
+        "p50": 4,
+        "p75": 6,
+        "p90": 7,
+        "line": 4.5,
+        "probOver": 0.467,
+        "probUnder": 0.533,
+        "probPush": 0,
+        "lean": "No edge",
+        "overOdds": -107,
+        "underOdds": -127,
+        "overImplied": 0.517,
+        "underImplied": 0.559,
+        "overEV": -0.096,
+        "underEV": -0.048,
+        "bestEVSide": "Under",
+        "bestEV": -0.048,
+        "evLean": "No +EV"
+      },
+      "opponentEnvironment": {
+        "teamName": "Athletics",
+        "pitcherHand": "Right",
+        "kRate": 0.2258,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 1.022,
+        "source": "team_stats_vs_hand",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vr",
+        "teamAdjustment": 1.022,
+        "lineupAdjustment": null,
+        "lineupKRate": null,
+        "lineupSource": "lineup_env_not_posted",
+        "hittersUsed": 0
+      },
+      "createdFrom": "mlb_room",
+      "clv": {
+        "updatedAt": "2026-05-07T15:34:27.137541-05:00",
+        "originalLine": "4.5",
+        "currentLine": 4.5,
+        "lineMove": 0.0,
+        "side": "under",
+        "clvSide": "neutral",
+        "currentOverOdds": -115,
+        "currentUnderOdds": -117
+      }
+    },
+    {
+      "id": 35,
+      "createdAt": "2026-05-07T13:25:51.195475-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 4.5,
+      "pitcher": {
+        "id": 700249,
+        "fullName": "Cade Povich",
+        "pitchHand": "Left",
+        "teamName": "Baltimore Orioles"
+      },
+      "matchup": {
+        "gameId": 823870,
+        "pitcherTeam": "Baltimore Orioles",
+        "opponentTeam": "Miami Marlins",
+        "isHome": false,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 23.31,
+        "expectedBattersFaced": 23.31,
+        "kPct": 0.196,
+        "adjustedKPct": 0.196,
+        "strikeouts": 4.56,
+        "confidence": "medium",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 1,
+          "risk": "normal",
+          "volatility": "low",
+          "avgBF": 22.67,
+          "stdBF": 1.89,
+          "avgIP": 5.13,
+          "avgER": 2.67,
+          "avgBB": 2.5,
+          "shortStartCount": 1,
+          "deepStartCount": 1,
+          "reasons": [
+            "neutral workload profile"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 4.55,
+        "median": 4,
+        "p10": 2,
+        "p25": 3,
+        "p50": 4,
+        "p75": 6,
+        "p90": 7,
+        "line": 4.5,
+        "probOver": 0.486,
+        "probUnder": 0.514,
+        "probPush": 0,
+        "lean": "No edge",
+        "overOdds": -176,
+        "underOdds": 130,
+        "overImplied": 0.638,
+        "underImplied": 0.435,
+        "overEV": -0.238,
+        "underEV": 0.183,
+        "bestEVSide": "Under",
+        "bestEV": 0.183,
+        "evLean": "Strong +EV Under"
+      },
+      "opponentEnvironment": {
+        "teamName": "Miami Marlins",
+        "pitcherHand": "Left",
+        "kRate": 0.2205,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 0.998,
+        "source": "team_stats_vs_hand",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vl",
+        "teamAdjustment": 0.998,
+        "lineupAdjustment": null,
+        "lineupKRate": null,
+        "lineupSource": "lineup_env_not_posted",
+        "hittersUsed": 0
+      },
+      "createdFrom": "mlb_room",
+      "clv": {
+        "updatedAt": "2026-05-07T15:34:52.428738-05:00",
+        "originalLine": "4.5",
+        "currentLine": 4.5,
+        "lineMove": 0.0,
+        "side": "under",
+        "clvSide": "neutral",
+        "currentOverOdds": -205,
+        "currentUnderOdds": 148
+      }
+    },
+    {
+      "id": 36,
+      "createdAt": "2026-05-07T13:26:35.927299-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Over",
+      "line": 5.5,
+      "pitcher": {
+        "id": 676974,
+        "fullName": "Max Meyer",
+        "pitchHand": "Right",
+        "teamName": "Miami Marlins"
+      },
+      "matchup": {
+        "gameId": 823870,
+        "pitcherTeam": "Miami Marlins",
+        "opponentTeam": "Baltimore Orioles",
+        "isHome": true,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 22.13,
+        "expectedBattersFaced": 22.13,
+        "kPct": 0.254,
+        "adjustedKPct": 0.279,
+        "strikeouts": 6.17,
+        "confidence": "higher",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 1,
+          "risk": "normal",
+          "volatility": "low",
+          "avgBF": 22.2,
+          "stdBF": 0.98,
+          "avgIP": 4.86,
+          "avgER": 2.2,
+          "avgBB": 2.2,
+          "shortStartCount": 1,
+          "deepStartCount": 0,
+          "reasons": [
+            "neutral workload profile"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 6.17,
+        "median": 6,
+        "p10": 3,
+        "p25": 5,
+        "p50": 6,
+        "p75": 8,
+        "p90": 9,
+        "line": 5.5,
+        "probOver": 0.601,
+        "probUnder": 0.399,
+        "probPush": 0,
+        "lean": "Strong Over",
+        "overOdds": -137,
+        "underOdds": 102,
+        "overImplied": 0.578,
+        "underImplied": 0.495,
+        "overEV": 0.039,
+        "underEV": -0.193,
+        "bestEVSide": "Over",
+        "bestEV": 0.039,
+        "evLean": "No +EV"
+      },
+      "opponentEnvironment": {
+        "teamName": "Baltimore Orioles",
+        "pitcherHand": "Right",
+        "kRate": 0.2429,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 1.099,
+        "source": "team_stats_vs_hand",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vr",
+        "teamAdjustment": 1.099,
+        "lineupAdjustment": null,
+        "lineupKRate": null,
+        "lineupSource": "lineup_env_not_posted",
+        "hittersUsed": 0
+      },
+      "createdFrom": "mlb_room"
+    },
+    {
+      "id": 37,
+      "createdAt": "2026-05-07T13:26:53.403276-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 3.5,
+      "pitcher": {
+        "id": 643377,
+        "fullName": "Griffin Jax",
+        "pitchHand": "Right",
+        "teamName": "Tampa Bay Rays"
+      },
+      "matchup": {
+        "gameId": 824767,
+        "pitcherTeam": "Tampa Bay Rays",
+        "opponentTeam": "Boston Red Sox",
+        "isHome": false,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 11.35,
+        "expectedBattersFaced": 11.12,
+        "kPct": 0.117,
+        "adjustedKPct": 0.12,
+        "strikeouts": 1.33,
+        "confidence": "medium",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 0.98,
+          "risk": "normal",
+          "volatility": "low",
+          "avgBF": 4.4,
+          "stdBF": 1.96,
+          "avgIP": 0.82,
+          "avgER": 1.67,
+          "avgBB": 1,
+          "shortStartCount": 4,
+          "deepStartCount": 0,
+          "reasons": [
+            "multiple recent short starts",
+            "upward workload trend"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 1.33,
+        "median": 1,
+        "p10": 0,
+        "p25": 0,
+        "p50": 1,
+        "p75": 2,
+        "p90": 3,
+        "line": 3.5,
+        "probOver": 0.04,
+        "probUnder": 0.96,
+        "probPush": 0,
+        "lean": "Strong Under",
+        "overOdds": -109,
+        "underOdds": -124,
+        "overImplied": 0.522,
+        "underImplied": 0.554,
+        "overEV": -0.923,
+        "underEV": 0.734,
+        "bestEVSide": "Under",
+        "bestEV": 0.734,
+        "evLean": "Strong +EV Under"
+      },
+      "opponentEnvironment": {
+        "teamName": "Boston Red Sox",
+        "pitcherHand": "Right",
+        "kRate": 0.2259,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 1.022,
+        "source": "team_stats_vs_hand",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vr",
+        "teamAdjustment": 1.022,
+        "lineupAdjustment": null,
+        "lineupKRate": null,
+        "lineupSource": "lineup_env_not_posted",
+        "hittersUsed": 0
+      },
+      "createdFrom": "mlb_room"
+    },
+    {
+      "id": 38,
+      "createdAt": "2026-05-07T13:27:37.390936-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Over",
+      "line": 3.5,
+      "pitcher": {
+        "id": 687562,
+        "fullName": "Jake Bennett",
+        "pitchHand": "Left",
+        "teamName": "Boston Red Sox"
+      },
+      "matchup": {
+        "gameId": 824767,
+        "pitcherTeam": "Boston Red Sox",
+        "opponentTeam": "Tampa Bay Rays",
+        "isHome": true,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 17.34,
+        "expectedBattersFaced": 17.34,
+        "kPct": 0.212,
+        "adjustedKPct": 0.191,
+        "strikeouts": 3.31,
+        "confidence": "low",
+        "role": "uncertain",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 1,
+          "risk": "normal",
+          "volatility": "low",
+          "avgBF": 20,
+          "stdBF": 0,
+          "avgIP": 5,
+          "avgER": 1,
+          "avgBB": 2,
+          "shortStartCount": 0,
+          "deepStartCount": 0,
+          "reasons": [
+            "neutral workload profile"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 3.34,
+        "median": 3,
+        "p10": 1,
+        "p25": 2,
+        "p50": 3,
+        "p75": 4,
+        "p90": 6,
+        "line": 3.5,
+        "probOver": 0.435,
+        "probUnder": 0.565,
+        "probPush": 0,
+        "lean": "Lean Under",
+        "overOdds": 150,
+        "underOdds": -205,
+        "overImplied": 0.4,
+        "underImplied": 0.672,
+        "overEV": 0.087,
+        "underEV": -0.159,
+        "bestEVSide": "Over",
+        "bestEV": 0.087,
+        "evLean": "Lean +EV Over"
+      },
+      "opponentEnvironment": {
+        "teamName": "Tampa Bay Rays",
+        "pitcherHand": "Left",
+        "kRate": 0.1862,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 0.9,
+        "source": "team_stats_vs_hand",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vl",
+        "teamAdjustment": 0.9,
+        "lineupAdjustment": null,
+        "lineupKRate": null,
+        "lineupSource": "lineup_env_not_posted",
+        "hittersUsed": 0
+      },
+      "createdFrom": "mlb_room"
+    },
+    {
+      "id": 39,
+      "createdAt": "2026-05-07T13:28:08.071256-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 3.5,
+      "pitcher": {
+        "id": 669461,
+        "fullName": "Matthew Liberatore",
+        "pitchHand": "Left",
+        "teamName": "St. Louis Cardinals"
+      },
+      "matchup": {
+        "gameId": 823306,
+        "pitcherTeam": "St. Louis Cardinals",
+        "opponentTeam": "San Diego Padres",
+        "isHome": false,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 23.08,
+        "expectedBattersFaced": 23.08,
+        "kPct": 0.144,
+        "adjustedKPct": 0.142,
+        "strikeouts": 3.28,
+        "confidence": "higher",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 1,
+          "risk": "normal",
+          "volatility": "low",
+          "avgBF": 23.4,
+          "stdBF": 1.02,
+          "avgIP": 5.4,
+          "avgER": 2.2,
+          "avgBB": 2,
+          "shortStartCount": 0,
+          "deepStartCount": 2,
+          "reasons": [
+            "neutral workload profile"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 3.26,
+        "median": 3,
+        "p10": 1,
+        "p25": 2,
+        "p50": 3,
+        "p75": 4,
+        "p90": 6,
+        "line": 3.5,
+        "probOver": 0.411,
+        "probUnder": 0.589,
+        "probPush": 0,
+        "lean": "Lean Under",
+        "overOdds": -143,
+        "underOdds": 106,
+        "overImplied": 0.588,
+        "underImplied": 0.485,
+        "overEV": -0.301,
+        "underEV": 0.212,
+        "bestEVSide": "Under",
+        "bestEV": 0.212,
+        "evLean": "Strong +EV Under"
+      },
+      "opponentEnvironment": {
+        "teamName": "San Diego Padres",
+        "pitcherHand": "Left",
+        "kRate": 0.2173,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 0.984,
+        "source": "team_stats_vs_hand",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vl",
+        "teamAdjustment": 0.984,
+        "lineupAdjustment": null,
+        "lineupKRate": null,
+        "lineupSource": "lineup_env_not_posted",
+        "hittersUsed": 0
+      },
+      "createdFrom": "mlb_room",
+      "clv": {
+        "updatedAt": "2026-05-07T15:33:50.811064-05:00",
+        "originalLine": "3.5",
+        "currentLine": 3.5,
+        "lineMove": 0.0,
+        "side": "under",
+        "clvSide": "neutral",
+        "currentOverOdds": -143,
+        "currentUnderOdds": 106
+      }
+    },
+    {
+      "id": 40,
+      "createdAt": "2026-05-07T13:28:46.011837-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 5.5,
+      "pitcher": {
+        "id": 650633,
+        "fullName": "Michael King",
+        "pitchHand": "Right",
+        "teamName": "San Diego Padres"
+      },
+      "matchup": {
+        "gameId": 823306,
+        "pitcherTeam": "San Diego Padres",
+        "opponentTeam": "St. Louis Cardinals",
+        "isHome": true,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 22.48,
+        "expectedBattersFaced": 22.48,
+        "kPct": 0.236,
+        "adjustedKPct": 0.232,
+        "strikeouts": 5.21,
+        "confidence": "higher",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 1,
+          "risk": "normal",
+          "volatility": "low",
+          "avgBF": 22.4,
+          "stdBF": 2.42,
+          "avgIP": 5.44,
+          "avgER": 2.33,
+          "avgBB": 2.8,
+          "shortStartCount": 0,
+          "deepStartCount": 2,
+          "reasons": [
+            "neutral workload profile"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 5.25,
+        "median": 5,
+        "p10": 3,
+        "p25": 4,
+        "p50": 5,
+        "p75": 7,
+        "p90": 8,
+        "line": 5.5,
+        "probOver": 0.431,
+        "probUnder": 0.569,
+        "probPush": 0,
+        "lean": "Lean Under",
+        "overOdds": -108,
+        "underOdds": -125,
+        "overImplied": 0.519,
+        "underImplied": 0.556,
+        "overEV": -0.17,
+        "underEV": 0.024,
+        "bestEVSide": "Under",
+        "bestEV": 0.024,
+        "evLean": "No +EV"
+      },
+      "opponentEnvironment": {
+        "teamName": "St. Louis Cardinals",
+        "pitcherHand": "Right",
+        "kRate": 0.2167,
+        "leagueAvgKRate": 0.221,
+        "adjustment": 0.981,
+        "source": "team_stats_vs_hand",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vr",
+        "teamAdjustment": 0.981,
+        "lineupAdjustment": null,
+        "lineupKRate": null,
+        "lineupSource": "lineup_env_not_posted",
+        "hittersUsed": 0
+      },
+      "createdFrom": "mlb_room",
+      "clv": {
+        "updatedAt": "2026-05-07T15:33:29.954309-05:00",
+        "originalLine": "5.5",
+        "currentLine": 5.5,
+        "lineMove": 0.0,
+        "side": "under",
+        "clvSide": "neutral",
+        "currentOverOdds": -108,
+        "currentUnderOdds": -125
+      }
+    },
+    {
+      "id": 41,
+      "createdAt": "2026-05-07T13:37:30.162987-05:00",
+      "settled": false,
+      "actual": null,
+      "result": null,
+      "sport": "mlb",
+      "market": "pitcher_strikeouts",
+      "side": "Under",
+      "line": 4.5,
+      "pitcher": {
+        "id": 669372,
+        "fullName": "J.T. Ginn",
+        "pitchHand": "Right",
+        "teamName": "Athletics"
+      },
+      "matchup": {
+        "gameId": 823467,
+        "pitcherTeam": "Athletics",
+        "opponentTeam": "Philadelphia Phillies",
+        "isHome": false,
+        "officialDate": "2026-05-07"
+      },
+      "projection": {
+        "baseExpectedBattersFaced": 16.46,
+        "expectedBattersFaced": 16.13,
+        "kPct": 0.185,
+        "adjustedKPct": 0.177,
+        "strikeouts": 2.85,
+        "confidence": "medium",
+        "role": "starter",
+        "modelVersion": "phase4_workload_bf_kpct",
+        "workload": {
+          "adjustment": 0.98,
+          "risk": "normal",
+          "volatility": "medium",
+          "avgBF": 12.6,
+          "stdBF": 4.96,
+          "avgIP": 3.08,
+          "avgER": 2,
+          "avgBB": 1.75,
+          "shortStartCount": 4,
+          "deepStartCount": 0,
+          "reasons": [
+            "multiple recent short starts",
+            "upward workload trend"
+          ]
+        }
+      },
+      "simulation": {
+        "samples": 10000,
+        "mean": 2.85,
+        "median": 3,
+        "p10": 1,
+        "p25": 2,
+        "p50": 3,
+        "p75": 4,
+        "p90": 5,
+        "line": 4.5,
+        "probOver": 0.158,
+        "probUnder": 0.842,
+        "probPush": 0,
+        "lean": "Strong Under",
+        "overOdds": 111,
+        "underOdds": -150,
+        "overImplied": 0.474,
+        "underImplied": 0.6,
+        "overEV": -0.667,
+        "underEV": 0.404,
+        "bestEVSide": "Under",
+        "bestEV": 0.404,
+        "evLean": "Strong +EV Under"
+      },
+      "opponentEnvironment": {
+        "teamName": "Philadelphia Phillies",
+        "pitcherHand": "Right",
+        "kRate": 0.211,
+        "leagueAvgKRate": 0.2209,
+        "adjustment": 0.955,
+        "source": "team_stats_vs_hand",
+        "debugSource": "https://statsapi.mlb.com/api/v1/teams/stats?sportIds=1&season=2026&group=hitting&stats=season&sitCodes=vr",
+        "teamAdjustment": 0.955,
+        "lineupAdjustment": null,
+        "lineupKRate": null,
+        "lineupSource": "lineup_env_not_posted",
+        "hittersUsed": 0
+      },
+      "createdFrom": "auto_best_board",
+      "clv": {
+        "updatedAt": "2026-05-07T15:33:27.227061-05:00",
+        "originalLine": "4.5",
+        "currentLine": 3.5,
+        "lineMove": -1.0,
+        "side": "under",
+        "clvSide": "good",
+        "currentOverOdds": -200,
+        "currentUnderOdds": 146
+      }
     }
   ]
 }

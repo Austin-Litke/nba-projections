@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from mlb.api.routes.tracking import get_tracked, post_track, post_settle, post_settle_all
+from mlb.api.routes.best_picks import get_best_picks
 from urllib.parse import urlparse, parse_qs
 from mlb.api.routes.lines import get_underdog_lines
 from mlb.api.routes.lineup import get_lineup
@@ -10,6 +11,13 @@ from mlb.api.routes.pitcher import (
     get_pitcher,
     get_pitcher_gamelog,
     get_pitcher_projection,
+)
+from mlb.api.routes.tracking import (
+    get_tracked,
+    post_track,
+    post_settle,
+    post_settle_all,
+    post_update_clv,
 )
 
 
@@ -22,6 +30,7 @@ GET_ROUTES = {
     "/api/mlb/underdog_lines": get_underdog_lines,
     "/api/mlb/tracked": get_tracked,
     "/api/mlb/lineup": get_lineup,
+    "/api/mlb/best_picks": get_best_picks,
     
 }
 
@@ -29,6 +38,7 @@ POST_ROUTES = {
     "/api/mlb/track": post_track,
     "/api/mlb/settle": post_settle,
     "/api/mlb/settle_all": post_settle_all,
+    "/api/mlb/update_clv": post_update_clv,
 }
 
 

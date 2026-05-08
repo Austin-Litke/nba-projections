@@ -8,4 +8,6 @@ export const state = {
   pitcherProjection: null,
   pitcherLines: null,
   pitcherLineup: null,
+  autoBestPicks: null,
+  tracked: null,
 };

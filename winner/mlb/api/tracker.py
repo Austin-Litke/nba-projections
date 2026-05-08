@@ -13,6 +13,26 @@ def _now_iso() -> str:
     return datetime.now(ZoneInfo("America/Chicago")).isoformat()
 
 
+def _ev_bucket(ev):
+    try:
+        ev = float(ev)
+    except Exception:
+        return None
+
+    if ev < 0:
+        return "negative"
+    if ev < 0.05:
+        return "0.00-0.05"
+    if ev < 0.10:
+        return "0.05-0.10"
+    if ev < 0.20:
+        return "0.10-0.20"
+    if ev < 0.40:
+        return "0.20-0.40"
+    return "0.40+"
+
+
+
 def _read_db() -> dict:
     if not os.path.exists(DB_PATH):
         return {"predictions": []}
@@ -143,6 +163,113 @@ def metrics() -> dict:
         "70+": {"wins": 0, "losses": 0, "pushes": 0},
     }
 
+    ev_buckets = {
+        "0-5": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+        "5-10": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+        "10-20": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+        "20-40": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+        "40+": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+    }
+    
+    ev_buckets_by_side = {
+        "over": {
+            "0-5": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+            "5-10": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+            "10-20": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+            "20-40": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+            "40+": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+        },
+        "under": {
+            "0-5": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+            "5-10": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+            "10-20": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+            "20-40": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+            "40+": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+        },
+    }
+    
+    
+    line_buckets = {
+        "3.5": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+        "4.5": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+        "5.5": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+        "6.5+": {"wins": 0, "losses": 0, "pushes": 0, "units": 0.0, "evTotal": 0.0, "count": 0},
+    }
+
+    def ev_bucket_for(ev):
+        if ev is None:
+            return None
+
+        try:
+            ev = float(ev)
+        except Exception:
+            return None
+
+        if ev < 0:
+            return None
+        if ev < 0.05:
+            return "0-5"
+        if ev < 0.10:
+            return "5-10"
+        if ev < 0.20:
+            return "10-20"
+        if ev < 0.40:
+            return "20-40"
+        return "40+"
+    
+    
+    def line_bucket_for(line):
+        try:
+            line = float(line)
+        except Exception:
+            return None
+
+        if line <= 3.5:
+            return "3.5"
+        if line <= 4.5:
+            return "4.5"
+        if line <= 5.5:
+            return "5.5"
+
+        return "6.5+"
+
+    def profit_for_result(result, odds):
+        if result == "win":
+            try:
+                odds = int(odds)
+
+                if odds > 0:
+                    return odds / 100.0
+
+                return 100.0 / abs(odds)
+
+            except Exception:
+                return 1.0
+
+        if result == "loss":
+            return -1.0
+
+        return 0.0
+
+
+
+        line_bucket = line_bucket_for(p.get("line"))
+
+        if line_bucket:
+            line_row = line_buckets[line_bucket]
+
+            line_row["count"] += 1
+            line_row["evTotal"] += float(chosen_ev or 0)
+            line_row["units"] += pick_units
+
+            if result == "win":
+                line_row["wins"] += 1
+            elif result == "loss":
+                line_row["losses"] += 1
+            elif result == "push":
+                line_row["pushes"] += 1
+
+
     for p in settled:
         result = (p.get("result") or "").lower()
         side = (p.get("side") or "").lower()
@@ -154,6 +281,22 @@ def metrics() -> dict:
 
         over_prob = sim.get("probOver")
         under_prob = sim.get("probUnder")
+
+        chosen_ev = None
+        chosen_prob = None
+        odds = None
+
+        if side == "over":
+            chosen_ev = over_ev
+            chosen_prob = over_prob
+            odds = sim.get("overOdds")
+
+        elif side == "under":
+            chosen_ev = under_ev
+            chosen_prob = under_prob
+            odds = sim.get("underOdds")
+
+        pick_units = profit_for_result(result, odds)
 
         if result == "win":
             wins += 1
@@ -173,20 +316,6 @@ def metrics() -> dict:
                 under_wins += 1
             elif result == "loss":
                 under_losses += 1
-
-        chosen_ev = None
-        chosen_prob = None
-        odds = None
-
-        if side == "over":
-            chosen_ev = over_ev
-            chosen_prob = over_prob
-            odds = sim.get("overOdds")
-
-        elif side == "under":
-            chosen_ev = under_ev
-            chosen_prob = under_prob
-            odds = sim.get("underOdds")
 
         if chosen_ev is not None:
             total_ev += chosen_ev
@@ -222,20 +351,37 @@ def metrics() -> dict:
                 elif result == "push":
                     calibration[bucket]["pushes"] += 1
 
-        if result == "win":
-            try:
-                odds = int(odds)
+        ev_bucket = ev_bucket_for(chosen_ev)
 
-                if odds > 0:
-                    units += odds / 100.0
-                else:
-                    units += 100.0 / abs(odds)
+        if ev_bucket:
+            row = ev_buckets[ev_bucket]
 
-            except Exception:
-                units += 1.0
+            row["count"] += 1
+            row["evTotal"] += float(chosen_ev or 0)
+            row["units"] += pick_units
 
-        elif result == "loss":
-            units -= 1.0
+            if result == "win":
+                row["wins"] += 1
+            elif result == "loss":
+                row["losses"] += 1
+            elif result == "push":
+                row["pushes"] += 1
+
+            if side in ev_buckets_by_side:
+                side_row = ev_buckets_by_side[side][ev_bucket]
+
+                side_row["count"] += 1
+                side_row["evTotal"] += float(chosen_ev or 0)
+                side_row["units"] += pick_units
+
+                if result == "win":
+                    side_row["wins"] += 1
+                elif result == "loss":
+                    side_row["losses"] += 1
+                elif result == "push":
+                    side_row["pushes"] += 1
+
+        units += pick_units
 
     graded = wins + losses
     total = wins + losses + pushes
@@ -262,6 +408,87 @@ def metrics() -> dict:
             "count": w + l + psh,
         }
 
+    ev_buckets_out = {}
+
+    for bucket, row in ev_buckets.items():
+        w = row["wins"]
+        l = row["losses"]
+        psh = row["pushes"]
+        count = row["count"]
+        graded_bucket = w + l
+
+        win_rate_bucket = (w / graded_bucket) if graded_bucket > 0 else None
+        roi_bucket = (row["units"] / graded_bucket) if graded_bucket > 0 else None
+        avg_ev_bucket = (row["evTotal"] / count) if count > 0 else None
+
+        ev_buckets_out[bucket] = {
+            "record": f"{w}-{l}-{psh}",
+            "wins": w,
+            "losses": l,
+            "pushes": psh,
+            "count": count,
+            "units": round(row["units"], 2),
+            "roi": round(roi_bucket, 3) if roi_bucket is not None else None,
+            "winRate": round(win_rate_bucket, 3) if win_rate_bucket is not None else None,
+            "averageEV": round(avg_ev_bucket, 3) if avg_ev_bucket is not None else None,
+        }
+
+
+
+    ev_buckets_by_side_out = {}
+
+    for side_key, buckets in ev_buckets_by_side.items():
+        ev_buckets_by_side_out[side_key] = {}
+
+        for bucket, row in buckets.items():
+            w = row["wins"]
+            l = row["losses"]
+            psh = row["pushes"]
+            count = row["count"]
+            graded_bucket = w + l
+
+            win_rate_bucket = (w / graded_bucket) if graded_bucket > 0 else None
+            roi_bucket = (row["units"] / graded_bucket) if graded_bucket > 0 else None
+            avg_ev_bucket = (row["evTotal"] / count) if count > 0 else None
+
+            ev_buckets_by_side_out[side_key][bucket] = {
+                "record": f"{w}-{l}-{psh}",
+                "wins": w,
+                "losses": l,
+                "pushes": psh,
+                "count": count,
+                "units": round(row["units"], 2),
+                "roi": round(roi_bucket, 3) if roi_bucket is not None else None,
+                "winRate": round(win_rate_bucket, 3) if win_rate_bucket is not None else None,
+                "averageEV": round(avg_ev_bucket, 3) if avg_ev_bucket is not None else None,
+            }
+            
+            
+    line_buckets_out = {}
+
+    for bucket, row in line_buckets.items():
+        w = row["wins"]
+        l = row["losses"]
+        psh = row["pushes"]
+        count = row["count"]
+        graded_bucket = w + l
+
+        win_rate_bucket = (w / graded_bucket) if graded_bucket > 0 else None
+        roi_bucket = (row["units"] / graded_bucket) if graded_bucket > 0 else None
+        avg_ev_bucket = (row["evTotal"] / count) if count > 0 else None
+
+        line_buckets_out[bucket] = {
+            "record": f"{w}-{l}-{psh}",
+            "wins": w,
+            "losses": l,
+            "pushes": psh,
+            "count": count,
+            "units": round(row["units"], 2),
+            "roi": round(roi_bucket, 3) if roi_bucket is not None else None,
+            "winRate": round(win_rate_bucket, 3) if win_rate_bucket is not None else None,
+            "averageEV": round(avg_ev_bucket, 3) if avg_ev_bucket is not None else None,
+        }
+
     return {
         "settled": total,
         "wins": wins,
@@ -277,9 +504,12 @@ def metrics() -> dict:
         "underRecord": f"{under_wins}-{under_losses}",
         "plusEVRecord": f"{plus_ev_wins}-{plus_ev_losses}",
         "calibration": calibration_out,
+        "evBuckets": ev_buckets_out,
+        "evBucketsBySide": ev_buckets_by_side_out,
+        "lineBuckets": line_buckets_out,
     }
-
-
+    
+    
 def counts() -> dict:
     preds = list_predictions()
 
@@ -329,3 +559,19 @@ def counts() -> dict:
         "plusEVSettled": len(plus_ev_settled),
         "plusEVPending": len(plus_ev_pending),
     }
+    
+def update_clv(pred_id: int, clv_payload: dict) -> dict | None:
+    db = _read_db()
+    preds = db.get("predictions") or []
+
+    for p in preds:
+        if int(p.get("id")) == int(pred_id):
+            p["clv"] = {
+                "updatedAt": _now_iso(),
+                **clv_payload,
+            }
+
+            _write_db(db)
+            return p
+
+    return None

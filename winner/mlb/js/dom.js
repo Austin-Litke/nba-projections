@@ -17,5 +17,10 @@ export const els = {
   settleAllBtn: document.getElementById("settleAllBtn"),
   trackedSort: document.getElementById("trackedSort"),
   bestPicksOut: document.getElementById("bestPicksOut"),
+  bestPicksOut: document.getElementById("bestPicksOut"),
+  scanBestPicksBtn: document.getElementById("scanBestPicksBtn"),
+  trackAllBestPicksBtn: document.getElementById("trackAllBestPicksBtn"),
+  bestPicksFilter: document.getElementById("bestPicksFilter"),
+  bestPicksSort: document.getElementById("bestPicksSort"),
 
 };

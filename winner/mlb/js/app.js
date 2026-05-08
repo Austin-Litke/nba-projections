@@ -11,6 +11,7 @@ import {
   renderPitcherGameLog,
   renderBestPicks,
   renderTracked,
+  renderAutoBestPicks,
 } from "./render.js";
 import { els } from "./dom.js";
 
@@ -30,6 +31,8 @@ export async function loadPitcher(pitcherId) {
   state.pitcher = await api.pitcher(pitcherId);
   renderPitcherDetail(state.pitcher);
 }
+
+
 
 export async function loadPitcherProjection(pitcherId) {
   renderPitcherStatus("Loading projection...");
@@ -147,8 +150,14 @@ export async function settlePick(id, gameId, pitcherId) {
 export async function loadTracked() {
   try {
     const data = await api.tracked();
+    state.tracked = data;
+
     renderBestPicks(data);
     renderTracked(data);
+
+    if (state.autoBestPicks) {
+      renderAutoBestPicks(state.autoBestPicks, data);
+    }
   } catch (err) {
     els.trackedOut.textContent = String(err);
     if (els.bestPicksOut) {
@@ -198,6 +207,38 @@ export function wireUi() {
     }
   });
 
+  els.bestPicksFilter?.addEventListener("change", () => {
+    if (state.autoBestPicks) {
+      renderAutoBestPicks(state.autoBestPicks, state.tracked);
+    }
+  });
+
+  els.trackedOut?.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".clv-btn");
+    if (!btn) return;
+
+    const id = btn.getAttribute("data-id");
+    const pitcherName = btn.getAttribute("data-pitcher-name");
+    const side = btn.getAttribute("data-side");
+    const line = btn.getAttribute("data-line");
+
+    await updateClvForPick(id, pitcherName, side, line);
+  });
+
+  els.bestPicksSort?.addEventListener("change", () => {
+    if (state.autoBestPicks) {
+      renderAutoBestPicks(state.autoBestPicks, state.tracked);
+    }
+  });
+
+  els.bestPicksOut?.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".track-auto-btn");
+    if (!btn) return;
+
+    const index = btn.getAttribute("data-index");
+    await trackAutoBestPick(index);
+  });
+
   els.scoreboardOut?.addEventListener("click", async (event) => {
     const btn = event.target.closest("[data-pitcher-id]");
     if (!btn) return;
@@ -212,6 +253,8 @@ export function wireUi() {
   els.refreshTrackedBtn?.addEventListener("click", loadTracked);
   els.settleAllBtn?.addEventListener("click", settleAllPending);
   els.trackedSort?.addEventListener("change", loadTracked);
+  els.scanBestPicksBtn?.addEventListener("click", scanBestPicks);
+  els.trackAllBestPicksBtn?.addEventListener("click", trackAllAutoBestPicks);
 
   // 👇 ADD THIS PART
   els.trackedOut?.addEventListener("click", async (e) => {
@@ -241,3 +284,140 @@ export async function settleAllPending() {
   }
 }
 
+export async function scanBestPicks() {
+  try {
+    els.bestPicksOut.textContent = "Scanning today's board...";
+
+    const data = await api.bestPicks();
+    state.autoBestPicks = data;
+
+    const trackedData = await api.tracked();
+    state.tracked = trackedData;
+
+    renderAutoBestPicks(data, trackedData);
+    renderTracked(trackedData);
+  } catch (err) {
+    els.bestPicksOut.textContent = String(err);
+  }
+}
+
+export async function trackAutoBestPick(index) {
+  try {
+    const pick = state.autoBestPicks?.picks?.[Number(index)];
+
+    if (!pick) {
+      els.trackStatus.textContent = "Auto pick not found.";
+      return;
+    }
+
+    const payload = {
+      sport: "mlb",
+      market: "pitcher_strikeouts",
+      side: pick.side,
+      line: pick.line,
+      pitcher: pick.pitcher,
+      matchup: pick.matchup,
+      projection: pick.projection,
+      simulation: pick.simulation,
+      opponentEnvironment: pick.opponentEnvironment || {},
+      createdFrom: "auto_best_board",
+    };
+
+    els.trackStatus.textContent = "Tracking auto pick...";
+    const res = await api.track(payload);
+
+    els.trackStatus.textContent = `Tracked auto pick #${res.prediction?.id ?? ""}`;
+
+    await loadTracked();
+  } catch (err) {
+    els.trackStatus.textContent = String(err);
+  }
+}
+
+function autoPickKey(p) {
+  return `${p.pitcher?.id}|${p.matchup?.gameId}|${p.side}|${p.line}`;
+}
+
+function trackedPickKey(p) {
+  return `${p.pitcher?.id}|${p.matchup?.gameId}|${p.side}|${p.line}`;
+}
+
+export async function trackAllAutoBestPicks() {
+  try {
+    const picks = state.autoBestPicks?.picks || [];
+
+    if (!picks.length) {
+      els.trackStatus.textContent = "No auto best picks loaded. Click Scan Today first.";
+      return;
+    }
+
+    const trackedData = await api.tracked();
+    const tracked = trackedData?.predictions || [];
+
+    const trackedKeys = new Set(tracked.map(trackedPickKey));
+
+    const untracked = picks.filter((p) => {
+      const ev = p.ev;
+      return ev != null && ev > 0 && !trackedKeys.has(autoPickKey(p));
+    });
+
+    if (!untracked.length) {
+      els.trackStatus.textContent = "All +EV auto picks are already tracked.";
+      return;
+    }
+
+    els.trackStatus.textContent = `Tracking ${untracked.length} auto pick(s)...`;
+
+    let saved = 0;
+    let failed = 0;
+
+    for (const pick of untracked) {
+      const payload = {
+        sport: "mlb",
+        market: "pitcher_strikeouts",
+        side: pick.side,
+        line: pick.line,
+        pitcher: pick.pitcher,
+        matchup: pick.matchup,
+        projection: pick.projection,
+        simulation: pick.simulation,
+        opponentEnvironment: pick.opponentEnvironment || {},
+        createdFrom: "auto_best_board_bulk",
+      };
+
+      try {
+        await api.track(payload);
+        saved += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    els.trackStatus.textContent =
+      `Tracked ${saved} auto pick(s)` +
+      (failed ? `, ${failed} failed` : "");
+
+    await loadTracked();
+  } catch (err) {
+    els.trackStatus.textContent = String(err);
+  }
+}
+
+export async function updateClvForPick(id, pitcherName, side, line) {
+  try {
+    els.trackStatus.textContent = "Updating CLV...";
+
+    const res = await api.updateClv({
+      id,
+      pitcherName,
+      side,
+      line,
+    });
+
+    els.trackStatus.textContent = `Updated CLV for pick #${res.prediction?.id ?? ""}`;
+
+    await loadTracked();
+  } catch (err) {
+    els.trackStatus.textContent = String(err);
+  }
+}

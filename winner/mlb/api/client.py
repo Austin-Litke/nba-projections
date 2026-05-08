@@ -68,7 +68,14 @@ def get_game_boxscore(game_pk: str):
     url = f"{MLB_STATS_API}/game/{game_pk}/boxscore"
     return http_get_json(url)
 
+def get_game_feed(game_pk: str):
+    url = f"{MLB_STATS_API}.1/game/{game_pk}/feed/live"
+    return http_get_json(url)
 
+
+def get_game_status(game_pk: str):
+    payload = get_game_feed(game_pk)
+    return (payload.get("gameData") or {}).get("status") or {}
 
 
 def get_hitter_stats(person_id: str, season: str):

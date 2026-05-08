@@ -9,7 +9,7 @@ from mlb.api.tracker import (
     update_clv,
 )
 
-from mlb.api.client import get_game_boxscore
+from mlb.api.client import get_game_boxscore, get_game_status
 from mlb.api.lines import lines_for_pitcher_strikeouts
 from mlb.api.utils import read_json_body
 
@@ -46,8 +46,7 @@ def post_track(handler):
     }
 
 
-def _game_is_final(boxscore_payload: dict) -> bool:
-    status = boxscore_payload.get("gameStatus") or {}
+def _game_is_final(status: dict) -> bool:
     detailed = (status.get("detailedState") or "").lower()
     abstract = (status.get("abstractGameState") or "").lower()
     coded = (status.get("codedGameState") or "").lower()
@@ -75,12 +74,14 @@ def post_settle(handler):
     if not pred_id or not game_id or not pitcher_id:
         return 400, {"error": "id, gameId, pitcherId required"}
 
-    payload = get_game_boxscore(str(game_id))
-    if not _game_is_final(payload):
+    status = get_game_status(str(game_id))
+
+    if not _game_is_final(status):
         return 409, {
             "error": "Game is not final yet",
             "message": "This pick cannot be settled until the game is final.",
-    }
+        }
+    payload = get_game_boxscore(str(game_id))    
     teams = payload.get("teams") or {}
 
     all_players = []
@@ -138,15 +139,15 @@ def post_settle_all(handler):
             continue
 
         try:
-            payload = get_game_boxscore(str(game_id))
+            status = get_game_status(str(game_id))
 
-            if not _game_is_final(payload):
+            if not _game_is_final(status):
                 errors.append({
                     "id": pred_id,
                     "error": "Game is not final yet",
                 })
                 continue
-
+            payload = get_game_boxscore(str(game_id))
             teams = payload.get("teams") or {}
 
             all_players = []
